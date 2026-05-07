@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# Hugging Face cache (can be large)
+.cache/
+~/.cache/huggingface/
+
+# Temporary files
+/tmp/
+deepfake_frames_*/
+deepfake_audio_*/
+deepfake_video_*/
+deepfake_test_*/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code local config
+.claude/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
