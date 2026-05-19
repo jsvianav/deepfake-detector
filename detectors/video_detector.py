@@ -19,17 +19,15 @@ REAL_LABELS = {"real", "authentic", "genuine", "original"}
 
 
 def _parse_score(results: list) -> float:
-    """Extract deepfake probability from pipeline output.
+    """Extrae la probabilidad de deepfake de la salida del pipeline.
 
-    The pipeline returns a list of dicts: [{'label': '...', 'score': 0.9}, ...].
-    We identify which label corresponds to 'fake' and return its score.
-    If both labels are ambiguous we return 0.5.
+    Este modelo usa salidas sigmoid (no softmax), por lo que los scores de
+    'Fake' y 'Real' son independientes y no suman 1.0. Se normalizan
+    explícitamente para obtener una probabilidad calibrada.
 
-    Args:
-        results: Raw output from transformers image-classification pipeline.
-
-    Returns:
-        Deepfake probability in [0, 1].
+    Ejemplo real del modelo:
+        Fake=0.859, Real=0.716  →  0.859 / (0.859 + 0.716) = 0.546 (inconcluso)
+        Fake=0.12,  Real=0.95   →  0.12  / (0.12  + 0.95)  = 0.112 (auténtico)
     """
     if not results:
         return 0.5
@@ -40,23 +38,26 @@ def _parse_score(results: list) -> float:
     for item in results:
         label_lower = item["label"].lower()
         score = float(item["score"])
-        # Check fake keywords
         if any(kw in label_lower for kw in FAKE_LABELS):
             best_fake = max(best_fake or 0.0, score)
-        # Check real keywords
         elif any(kw in label_lower for kw in REAL_LABELS):
             best_real = max(best_real or 0.0, score)
 
+    # Normalizar cuando ambos scores están presentes (caso sigmoid multi-label)
+    if best_fake is not None and best_real is not None:
+        total = best_fake + best_real
+        if total > 0:
+            return best_fake / total
+        return 0.5
+
     if best_fake is not None:
+        # Solo hay score de fake — usarlo directamente
         return best_fake
     if best_real is not None:
-        # Invert: high real score → low fake score
         return 1.0 - best_real
 
-    # Fallback: use the top-1 label.  Assume the first result is 'fake' if
-    # its score is the highest, otherwise treat as unknown.
     logger.warning(
-        "Could not map labels to fake/real: %s — defaulting to 0.5",
+        "No se pudieron mapear etiquetas a fake/real: %s — usando 0.5",
         [r["label"] for r in results],
     )
     return 0.5
