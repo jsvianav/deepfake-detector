@@ -18,7 +18,7 @@ from transformers import pipeline
 
 logger = logging.getLogger(__name__)
 
-MODEL_ID   = "MelodyMachine/Deepfake-audio-detection-V2"
+MODEL_ID   = "garystafford/wav2vec2-deepfake-voice-detector"
 TARGET_SR  = 16_000   # Hz que espera el modelo Wav2Vec2
 CHUNK_SEC  = 10       # segundos por segmento
 HOP_SEC    = 5        # salto entre segmentos (50 % de solapamiento)

@@ -675,7 +675,7 @@ with gr.Blocks(
             gr.Markdown(
                 "**Modelos**\n\n"
                 "Visual — `prithivMLmods/Deep-Fake-Detector-Model` (ViT)\n\n"
-                "Audio — `MelodyMachine/Deepfake-audio-detection-V2` (Wav2Vec2)\n\n"
+                "Audio — `garystafford/wav2vec2-deepfake-voice-detector` (Wav2Vec2)\n\n"
                 "100% local · sin APIs externas · código abierto"
             )
 
