@@ -72,7 +72,7 @@ ACCEPTED_EXTENSIONS = [
     ".jpg", ".jpeg", ".png",
 ]
 
-ChatHistory = List[dict]
+ChatHistory = list
 
 # ---------------------------------------------------------------------------
 # Iconos SVG (atributos HTML, no camelCase de React)
