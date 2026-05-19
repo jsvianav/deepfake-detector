@@ -163,8 +163,16 @@ class Orchestrator:
                 result.audio_score = self._aud.predict(audio_path)
                 logger.info("Audio score: %.4f", result.audio_score)
 
-            # 3. Fuse.
-            result.fused_score = combine_av_scores(result.video_score, result.audio_score)
+            # 3. Fusionar — el audio pesa menos en videos porque el modelo de audio
+            # está entrenado para voz sintética, no para música de fondo.
+            # Un video con música (ej. deepfake de baile) no debe ser penalizado
+            # por el audio, ya que la música no es voz humana ni voz sintética.
+            result.fused_score = combine_av_scores(
+                result.video_score,
+                result.audio_score,
+                video_weight=0.85,
+                audio_weight=0.15,
+            )
 
         finally:
             cleanup_temp_files(tmp_dir)

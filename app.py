@@ -674,8 +674,11 @@ with gr.Blocks(
 
             gr.Markdown(
                 "**Modelos**\n\n"
-                "Visual — `prithivMLmods/Deep-Fake-Detector-Model` (ViT)\n\n"
-                "Audio — `garystafford/wav2vec2-deepfake-voice-detector` (Wav2Vec2)\n\n"
+                "**Imagen / Video**\n\n"
+                "Frame completo — `prithivMLmods/Deep-Fake-Detector-Model` (ViT)\n\n"
+                "Cara (recorte) — `dima806/deepfake_vs_real_image_detection` (ViT)\n\n"
+                "**Audio**\n\n"
+                "Voz — `garystafford/wav2vec2-deepfake-voice-detector` (Wav2Vec2)\n\n"
                 "100% local · sin APIs externas · código abierto"
             )
 
