@@ -5,12 +5,13 @@ import statistics
 
 
 def aggregate_frame_scores(scores: List[float]) -> float:
-    """Agrega los scores por fotograma en un único score de video.
+    """Agrega los scores por fotograma usando señales estadísticas del conjunto.
 
-    Estrategia: promedio del 25 % más sospechoso de los fotogramas, con un
-    boost adicional si el fotograma más sospechoso supera 0.65. Esto hace que
-    unos pocos fotogramas muy comprometedores eleven el resultado aunque el
-    resto del video parezca normal (patrón típico en deepfakes de cara).
+    Usa tres señales complementarias:
+    - Mediana: indica el comportamiento "típico" del video
+    - Máximo + stdev: detecta el patrón de face-swap (pocos frames muy sospechosos
+      con alta varianza, el resto pasan — típico de deepfakes de cara)
+    - Media total: ancla conservadora cuando la mayoría de frames son reales
 
     Args:
         scores: Lista de probabilidades de deepfake por fotograma, en [0, 1].
@@ -24,16 +25,32 @@ def aggregate_frame_scores(scores: List[float]) -> float:
         return scores[0]
 
     sorted_desc = sorted(scores, reverse=True)
-    top_n       = max(1, len(sorted_desc) // 4)   # top 25 %
-    top_scores  = sorted_desc[:top_n]
-    mean_top    = statistics.mean(top_scores)
-    max_score   = sorted_desc[0]
+    n            = len(scores)
+    mean_all     = statistics.mean(scores)
+    median_all   = statistics.median(scores)
+    max_score    = sorted_desc[0]
+    stdev_all    = statistics.stdev(scores) if n > 1 else 0.0
 
-    # Si el fotograma más sospechoso es muy alto, darle más peso
-    if max_score > 0.65:
+    top_n     = max(1, n // 3)
+    mean_top  = statistics.mean(sorted_desc[:top_n])
+
+    # FIRMA DE VIDEO REAL: la mayoría de frames son claramente reales y el frame más
+    # sospechoso no es alarmante. Usar la media de todos los frames (no solo los peores).
+    if median_all < 0.38 and max_score < 0.65:
+        return mean_all
+
+    # FIRMA DE VIDEO IA (diffusion / Sora / Runway): todos los frames son sintéticos
+    # → la mediana es alta de forma consistente.
+    if median_all > 0.52:
+        return mean_top
+
+    # FIRMA DE FACE-SWAP: alta varianza + pico alto
+    # (algunos frames claramente falsos, otros pasan; es el patrón típico de face-swap).
+    if max_score > 0.68 and stdev_all > 0.08:
         return 0.55 * mean_top + 0.45 * max_score
 
-    return mean_top
+    # POR DEFECTO: zona gris — pesar hacia los frames más sospechosos pero con cautela.
+    return 0.70 * mean_top + 0.30 * mean_all
 
 
 def combine_av_scores(
@@ -74,6 +91,6 @@ def score_to_verdict(score: float) -> Tuple[str, str]:
     """
     if score < 0.40:
         return "Probablemente REAL", "✅"
-    if score > 0.55:
+    if score > 0.57:
         return "Probablemente IA / FAKE", "⚠️"
     return "Inconcluso", "❓"

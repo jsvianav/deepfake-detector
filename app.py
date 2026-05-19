@@ -5,6 +5,7 @@ interfaz Blocks que acepta archivos multimedia por arrastrar y soltar.
 """
 
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -13,6 +14,9 @@ import gradio as gr
 import torch
 
 sys.path.insert(0, str(Path(__file__).parent))
+
+# Detectar si corremos en Hugging Face Spaces
+_IS_SPACES = os.environ.get("SPACE_ID") is not None
 
 from detectors.video_detector import ImageDeepfakeDetector
 from detectors.audio_detector import AudioDeepfakeDetector
@@ -38,7 +42,12 @@ if device == "cpu":
 logger.info("=== Cargando modelos (puede tomar un minuto la primera vez) ===")
 _image_detector = ImageDeepfakeDetector(device=device)
 _audio_detector = AudioDeepfakeDetector(device=device)
-_orchestrator = Orchestrator(_image_detector, _audio_detector, frame_fps=1.0, max_frames=30)
+
+# En Spaces de CPU gratuito, reducir frames para que el análisis sea más rápido
+_max_frames = 8 if (_IS_SPACES and device == "cpu") else 30
+logger.info("Frames por video: %d (%s)", _max_frames, "Spaces CPU" if _max_frames == 8 else "completo")
+
+_orchestrator = Orchestrator(_image_detector, _audio_detector, frame_fps=1.0, max_frames=_max_frames)
 logger.info("=== Modelos listos ===")
 
 # ---------------------------------------------------------------------------
@@ -392,7 +401,7 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
     score = result.fused_score
     pct   = score * 100
 
-    if score > 0.55:
+    if score > 0.57:
         kind, verdict_label     = "fake", "Contenido sintético"
         fill_c, fill_sh         = "#EF4444", "rgba(239,68,68,.5)"
         pill_bg, pill_c, pill_b = "rgba(239,68,68,.1)", "#FCA5A5", "rgba(239,68,68,.3)"
@@ -675,8 +684,8 @@ with gr.Blocks(
             gr.Markdown(
                 "**Modelos**\n\n"
                 "**Imagen / Video**\n\n"
-                "Frame completo — `prithivMLmods/Deep-Fake-Detector-Model` (ViT)\n\n"
-                "Cara (recorte) — `dima806/deepfake_vs_real_image_detection` (ViT)\n\n"
+                "Face-swap — `prithivMLmods/Deep-Fake-Detector-Model` (ViT, recorte facial)\n\n"
+                "Contenido IA — `haywoodsloan/ai-image-detector-deploy` (SwinV2 0.2B, frame completo)\n\n"
                 "**Audio**\n\n"
                 "Voz — `garystafford/wav2vec2-deepfake-voice-detector` (Wav2Vec2)\n\n"
                 "100% local · sin APIs externas · código abierto"
@@ -702,7 +711,7 @@ with gr.Blocks(
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     demo.launch(
-        server_name="127.0.0.1",
+        server_name="0.0.0.0" if _IS_SPACES else "127.0.0.1",
         server_port=7860,
         share=False,
         show_error=True,

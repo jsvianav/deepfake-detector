@@ -1,3 +1,14 @@
+---
+title: Detector de Deepfakes
+emoji: 🔍
+colorFrom: red
+colorTo: blue
+sdk: gradio
+sdk_version: 4.42.0
+app_file: app.py
+pinned: false
+---
+
 # Deepfake Detector
 
 Detecta contenido sintético o manipulado por IA en archivos de **video**, **audio** e **imagen** usando modelos open-source de Hugging Face que corren 100 % de forma local, sin APIs externas ni costos adicionales.

@@ -149,9 +149,27 @@ class Orchestrator:
 
             if frames:
                 frame_scores = self._img.predict_batch(frames)
-                result.video_score = aggregate_frame_scores(frame_scores)
+                visual_score = aggregate_frame_scores(frame_scores)
+
+                # Señal temporal: incoherencia de textura facial entre frames
+                # (clave para detectar face-swap donde cada frame se sintetiza por separado)
+                temporal_score = 0.5  # neutral por defecto
+                if len(frames) >= 3:
+                    temporal_score = self._img.temporal_consistency_score(frames)
+
+                # Fusión adaptativa: si la señal temporal es fuerte, darle más peso
+                if temporal_score > 0.55:
+                    # Incoherencia temporal alta → probable face-swap
+                    result.video_score = 0.42 * visual_score + 0.58 * temporal_score
+                elif temporal_score < 0.38:
+                    # Cara muy consistente → señal real fuerte, confiar en visual
+                    result.video_score = 0.80 * visual_score + 0.20 * temporal_score
+                else:
+                    result.video_score = 0.62 * visual_score + 0.38 * temporal_score
+
                 logger.info(
-                    "Video score: %.4f from %d frames", result.video_score, len(frames)
+                    "Visual=%.4f | Temporal=%.4f → Video=%.4f (%d frames)",
+                    visual_score, temporal_score, result.video_score, len(frames),
                 )
             else:
                 logger.warning("No frames extracted from %s", file_path)
