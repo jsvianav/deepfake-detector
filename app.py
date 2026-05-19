@@ -24,6 +24,17 @@ if not hasattr(_hfhub, "HfFolder"):
     _hfhub.HfFolder = _HfFolder
 
 import gradio as gr
+
+# gradio_client bug: get_type() crashes on boolean JSON Schema values (additionalProperties: true).
+# Patch it before any request triggers get_api_info().
+import gradio_client.utils as _gc_utils
+_orig_get_type = _gc_utils.get_type
+def _patched_get_type(schema):
+    if not isinstance(schema, dict):
+        return "Any"
+    return _orig_get_type(schema)
+_gc_utils.get_type = _patched_get_type
+
 import torch
 
 sys.path.insert(0, str(Path(__file__).parent))
