@@ -59,7 +59,7 @@ ACCEPTED_EXTENSIONS = [
     ".jpg", ".jpeg", ".png",
 ]
 
-ChatHistory = List[Tuple[str, str]]
+ChatHistory = List[dict]
 
 # ---------------------------------------------------------------------------
 # Iconos SVG (atributos HTML, no camelCase de React)
@@ -531,18 +531,18 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
 
 def analyse_file(file_obj, history: ChatHistory) -> Tuple[ChatHistory, ChatHistory, None]:
     if file_obj is None:
-        history = history + [("", "⚠️ Por favor sube un archivo antes de analizar.")]
+        history = history + [{"role": "assistant", "content": "⚠️ Por favor sube un archivo antes de analizar."}]
         return history, history, None
 
     file_path = file_obj if isinstance(file_obj, str) else getattr(file_obj, "name", str(file_obj))
 
     if not file_path or not Path(file_path).is_file():
-        history = history + [("", "⚠️ Archivo inválido. Por favor sube un video, audio o imagen.")]
+        history = history + [{"role": "assistant", "content": "⚠️ Archivo inválido. Por favor sube un video, audio o imagen."}]
         return history, history, None
 
     file_name = Path(file_path).name
     user_msg  = f"📎 **{file_name}**"
-    history   = history + [(user_msg, None)]  # type: ignore[list-item]
+    history   = history + [{"role": "user", "content": user_msg}]
 
     try:
         result: DetectionResult = _orchestrator.analyse(file_path)
@@ -551,7 +551,7 @@ def analyse_file(file_obj, history: ChatHistory) -> Tuple[ChatHistory, ChatHisto
         logger.exception("Error inesperado al analizar %s", file_path)
         bot_msg = f"❌ Error inesperado: {exc}"
 
-    history[-1] = (user_msg, bot_msg)
+    history = history + [{"role": "assistant", "content": bot_msg}]
     return history, history, None
 
 
@@ -663,12 +663,12 @@ with gr.Blocks(
     with gr.Row(equal_height=False):
         with gr.Column(scale=3):
             chatbot = gr.Chatbot(
-                value=[(None, WELCOME_HTML)],
+                value=[{"role": "assistant", "content": WELCOME_HTML}],
                 elem_id="chatbot",
                 label="Análisis",
                 bubble_full_width=False,
                 show_label=False,
-                render_markdown=True,
+                type="messages",
             )
 
         with gr.Column(scale=1, elem_classes=["right-panel"]):
