@@ -1,48 +1,59 @@
-"""Score aggregation helpers for multi-frame and audio+video fusion."""
+"""Helpers de agregación de scores para multi-fotograma y fusión audio+video."""
 
 from typing import List, Optional, Tuple
 import statistics
 
 
 def aggregate_frame_scores(scores: List[float]) -> float:
-    """Aggregate per-frame deepfake scores into a single video score.
+    """Agrega los scores por fotograma en un único score de video.
 
-    Uses the mean of the top-50 % of scores so that a few very suspicious
-    frames raise the alarm without isolated noise dominating.
+    Estrategia: promedio del 25 % más sospechoso de los fotogramas, con un
+    boost adicional si el fotograma más sospechoso supera 0.65. Esto hace que
+    unos pocos fotogramas muy comprometedores eleven el resultado aunque el
+    resto del video parezca normal (patrón típico en deepfakes de cara).
 
     Args:
-        scores: List of per-frame deepfake probabilities in [0, 1].
+        scores: Lista de probabilidades de deepfake por fotograma, en [0, 1].
 
     Returns:
-        Aggregated score in [0, 1].  Returns 0.0 for an empty list.
+        Score agregado en [0, 1]. Devuelve 0.0 para lista vacía.
     """
     if not scores:
         return 0.0
     if len(scores) == 1:
         return scores[0]
+
     sorted_desc = sorted(scores, reverse=True)
-    top_half = sorted_desc[: max(1, len(sorted_desc) // 2)]
-    return statistics.mean(top_half)
+    top_n       = max(1, len(sorted_desc) // 4)   # top 25 %
+    top_scores  = sorted_desc[:top_n]
+    mean_top    = statistics.mean(top_scores)
+    max_score   = sorted_desc[0]
+
+    # Si el fotograma más sospechoso es muy alto, darle más peso
+    if max_score > 0.65:
+        return 0.55 * mean_top + 0.45 * max_score
+
+    return mean_top
 
 
 def combine_av_scores(
     video_score: Optional[float],
     audio_score: Optional[float],
-    video_weight: float = 0.6,
-    audio_weight: float = 0.4,
+    video_weight: float = 0.65,
+    audio_weight: float = 0.35,
 ) -> float:
-    """Combine video and audio deepfake scores into a single fused score.
+    """Combina los scores de video y audio en un score fusionado.
 
-    If one modality is unavailable the other carries full weight.
+    Si una modalidad no está disponible, la otra lleva todo el peso.
 
     Args:
-        video_score: Deepfake probability from the video detector, or None.
-        audio_score: Deepfake probability from the audio detector, or None.
-        video_weight: Weight for video when both are present.
-        audio_weight: Weight for audio when both are present.
+        video_score: Probabilidad de deepfake del detector visual, o None.
+        audio_score: Probabilidad de deepfake del detector de audio, o None.
+        video_weight: Peso del video cuando ambos están presentes.
+        audio_weight: Peso del audio cuando ambos están presentes.
 
     Returns:
-        Fused score in [0, 1].
+        Score fusionado en [0, 1].
     """
     if video_score is None and audio_score is None:
         return 0.0
@@ -51,25 +62,18 @@ def combine_av_scores(
     if audio_score is None:
         return video_score
 
-    total_weight = video_weight + audio_weight
-    return (video_score * video_weight + audio_score * audio_weight) / total_weight
+    total = video_weight + audio_weight
+    return (video_score * video_weight + audio_score * audio_weight) / total
 
 
 def score_to_verdict(score: float) -> Tuple[str, str]:
-    """Convert a fused deepfake score to a human-readable verdict.
-
-    Args:
-        score: Deepfake probability in [0, 1].
+    """Convierte el score fusionado en un veredicto legible.
 
     Returns:
-        Tuple of (verdict_label, emoji_indicator).
-        verdict_label is one of:
-            'Probablemente REAL'
-            'Probablemente IA / FAKE'
-            'Inconcluso'
+        Tupla (etiqueta, emoji).
     """
-    if score < 0.35:
+    if score < 0.40:
         return "Probablemente REAL", "✅"
-    if score > 0.65:
+    if score > 0.55:
         return "Probablemente IA / FAKE", "⚠️"
     return "Inconcluso", "❓"

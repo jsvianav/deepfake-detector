@@ -392,12 +392,12 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
     score = result.fused_score
     pct   = score * 100
 
-    if score >= 0.6:
+    if score > 0.55:
         kind, verdict_label     = "fake", "Contenido sintético"
         fill_c, fill_sh         = "#EF4444", "rgba(239,68,68,.5)"
         pill_bg, pill_c, pill_b = "rgba(239,68,68,.1)", "#FCA5A5", "rgba(239,68,68,.3)"
         card_b, card_sh         = "rgba(239,68,68,.25)", "rgba(239,68,68,.18)"
-    elif score <= 0.4:
+    elif score <= 0.40:
         kind, verdict_label     = "real", "Contenido auténtico"
         fill_c, fill_sh         = "#10B981", "rgba(16,185,129,.5)"
         pill_bg, pill_c, pill_b = "rgba(16,185,129,.1)", "#6EE7B7", "rgba(16,185,129,.3)"
