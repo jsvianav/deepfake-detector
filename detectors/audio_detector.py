@@ -1,6 +1,7 @@
-"""Audio deepfake detector using a Wav2Vec2 / XLSR-based classifier."""
+"""Detector de deepfakes en audio usando un clasificador Wav2Vec2 / XLSR."""
 
 import logging
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -13,16 +14,43 @@ MODEL_ID = "MelodyMachine/Deepfake-audio-detection-V2"
 FAKE_LABELS = {"fake", "deepfake", "spoof", "ai", "artificial", "generated", "synthetic"}
 REAL_LABELS = {"real", "genuine", "authentic", "bonafide", "human", "original"}
 
+TARGET_SR = 16_000  # Hz que espera el modelo
+
+
+def _load_audio(audio_path: str) -> dict:
+    """Carga audio como dict {raw, sampling_rate} compatible con la pipeline.
+
+    Intenta primero soundfile (sin ffmpeg) y luego librosa (requiere ffmpeg
+    para formatos como mp3 / m4a).
+    """
+    import soundfile as sf
+
+    try:
+        data, sr = sf.read(audio_path, always_2d=False)
+        if data.ndim > 1:
+            data = data.mean(axis=1)
+        return {"raw": data.astype(np.float32), "sampling_rate": int(sr)}
+    except Exception:
+        pass
+
+    # soundfile no admite MP3/M4A — intentar con librosa (necesita ffmpeg)
+    try:
+        import librosa
+        data, sr = librosa.load(audio_path, sr=None, mono=True)
+        return {"raw": data, "sampling_rate": int(sr)}
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "ffmpeg" in msg or "audioread" in msg or "no such file" in msg:
+            ext = Path(audio_path).suffix.upper()
+            raise RuntimeError(
+                f"No se puede decodificar {ext}: falta ffmpeg. "
+                "Instálalo con:  brew install ffmpeg"
+            ) from exc
+        raise
+
 
 def _parse_audio_score(results: list) -> float:
-    """Extract deepfake probability from audio-classification pipeline output.
-
-    Args:
-        results: Raw pipeline output list of dicts with 'label' and 'score'.
-
-    Returns:
-        Deepfake probability in [0, 1].
-    """
+    """Extrae la probabilidad de deepfake de la salida de la pipeline."""
     if not results:
         return 0.5
 
@@ -43,55 +71,38 @@ def _parse_audio_score(results: list) -> float:
         return 1.0 - best_real
 
     logger.warning(
-        "Could not map audio labels to fake/real: %s — defaulting to 0.5",
+        "No se pudieron mapear las etiquetas de audio a fake/real: %s — usando 0.5",
         [r["label"] for r in results],
     )
     return 0.5
 
 
 class AudioDeepfakeDetector:
-    """Wrapper around the audio deepfake detection pipeline.
-
-    The model is loaded once on construction and reused for all calls.
-
-    Example:
-        detector = AudioDeepfakeDetector()
-        score = detector.predict("path/to/audio.wav")
-    """
+    """Envoltorio de la pipeline de detección de audio deepfake."""
 
     def __init__(self, device: Optional[str] = None) -> None:
-        """Load the audio classification model into memory.
-
-        Args:
-            device: 'cuda', 'cpu', or None (auto-detect).
-        """
         import torch
 
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        logger.info("Loading audio deepfake model %s on %s …", MODEL_ID, device)
+        logger.info("Cargando modelo de audio %s en %s …", MODEL_ID, device)
         self._pipe = pipeline(
             "audio-classification",
             model=MODEL_ID,
             device=0 if device == "cuda" else -1,
         )
         self._device = device
-        logger.info("Audio model loaded.")
+        logger.info("Modelo de audio cargado.")
 
     def predict(self, audio_path: str) -> float:
-        """Run inference on an audio file.
-
-        The pipeline internally handles resampling to the model's expected
-        sample rate, so any sample rate is acceptable on input.
-
-        Args:
-            audio_path: Path to a WAV, MP3, FLAC, or OGG file.
+        """Ejecuta inferencia sobre un archivo de audio.
 
         Returns:
-            Deepfake probability in [0, 1].
+            Probabilidad de deepfake en [0, 1].
         """
-        results = self._pipe(audio_path)
+        audio_input = _load_audio(audio_path)
+        results = self._pipe(audio_input)
         score = _parse_audio_score(results)
-        logger.debug("Audio score: %.4f (raw=%s)", score, results)
+        logger.debug("Puntuación de audio: %.4f (raw=%s)", score, results)
         return score

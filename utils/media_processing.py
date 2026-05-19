@@ -93,8 +93,12 @@ def extract_frames(
             .overwrite_output()
             .run(quiet=True)
         )
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            "ffmpeg no está instalado. Instálalo con:  brew install ffmpeg"
+        ) from exc
     except ffmpeg.Error as exc:
-        raise RuntimeError(f"ffmpeg failed to extract frames: {exc.stderr.decode(errors='replace')}") from exc
+        raise RuntimeError(f"ffmpeg falló al extraer fotogramas: {exc.stderr.decode(errors='replace')}") from exc
 
     frames = sorted(
         str(p) for p in Path(work_dir).glob("frame_*.jpg")
@@ -141,7 +145,11 @@ def extract_audio(
         if not Path(audio_out).exists() or Path(audio_out).stat().st_size < 512:
             logger.warning("Audio extraction produced no usable output for %s", video_path)
             return None
-        raise RuntimeError(f"ffmpeg audio extraction failed: {stderr}") from exc
+        if "no such file" in stderr.lower() or not stderr:
+            raise RuntimeError(
+                "ffmpeg no está instalado. Instálalo con:  brew install ffmpeg"
+            ) from exc
+        raise RuntimeError(f"ffmpeg falló al extraer audio: {stderr}") from exc
 
     if not Path(audio_out).exists() or Path(audio_out).stat().st_size < 512:
         logger.warning("Audio file is empty for %s", video_path)
