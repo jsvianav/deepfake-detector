@@ -10,6 +10,19 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+# huggingface_hub>=0.26 removed HfFolder; gradio[oauth] still imports it at load time.
+# Inject a stub BEFORE importing gradio so the import chain succeeds.
+import huggingface_hub as _hfhub
+if not hasattr(_hfhub, "HfFolder"):
+    class _HfFolder:
+        @staticmethod
+        def get_token(): return None
+        @staticmethod
+        def save_token(token): pass
+        @staticmethod
+        def delete_token(): pass
+    _hfhub.HfFolder = _HfFolder
+
 import gradio as gr
 import torch
 
