@@ -151,10 +151,31 @@ html, body, .gradio-container, #app, gradio-app {
 *::-webkit-scrollbar-thumb:hover { background:rgba(124,58,237,.6); }
 
 /* ── Encabezado de página ────────────────────────────────── */
-.gradio-container > .markdown:first-child {
-  padding: 28px 0 20px 0 !important;
-  border-bottom: 1px solid rgba(255,255,255,.05) !important;
-  margin-bottom: 24px !important;
+.page-hdr {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 28px 0 20px; border-bottom: 1px solid rgba(255,255,255,.05);
+  margin-bottom: 24px;
+}
+.page-hdr-icon {
+  width:38px; height:38px; border-radius:10px;
+  background: linear-gradient(135deg,#7C3AED,#5B21B6);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow: 0 0 24px rgba(124,58,237,.5); flex-shrink:0;
+}
+.page-hdr-text { flex:1; min-width:0; }
+.page-hdr-title { font-size:20px; font-weight:700; color:#F8F7FF; letter-spacing:-.02em; line-height:1.1; }
+.page-hdr-grad  { background:linear-gradient(135deg,#C4B5FD,#A78BFA); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.page-hdr-sub   { font-size:12px; color:#6B6883; margin-top:3px; }
+.status-dot {
+  width:5px; height:5px; border-radius:50%; background:#10B981;
+  box-shadow:0 0 6px #10B981; display:inline-block;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+.status-pill {
+  margin-left:auto; display:inline-flex; align-items:center; gap:7px;
+  font-size:11px; color:#6EE7B7; background:rgba(16,185,129,.08);
+  border:1px solid rgba(16,185,129,.2); border-radius:999px; padding:4px 11px;
+  font-family:'JetBrains Mono',monospace;
 }
 
 /* ── Panel de chat (gr.HTML) ─────────────────────────────── */
@@ -621,30 +642,18 @@ def clear_history():
 # Interfaz Gradio
 # ---------------------------------------------------------------------------
 
-_status_dot = (
-    '<span style="width:5px;height:5px;border-radius:50%;background:#10B981;'
-    'box-shadow:0 0 6px #10B981;display:inline-block;animation:pulseDot 2s ease-in-out infinite"></span>'
-)
-
 HEADER_HTML = (
-    '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:4px 0">'
-    '<div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#7C3AED,#5B21B6);'
-    'display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px rgba(124,58,237,.5);flex-shrink:0">'
-    '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px">'
+    '<div class="page-hdr">'
+    '<div class="page-hdr-icon">'
+    '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"'
+    ' stroke-linecap="round" stroke-linejoin="round" width="16" height="16">'
     '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>'
     '</div>'
-    '<div>'
-    '<div style="font-size:20px;font-weight:700;color:#F8F7FF;letter-spacing:-.02em;line-height:1.1">'
-    'Detector de '
-    '<span style="background:linear-gradient(135deg,#C4B5FD,#A78BFA);-webkit-background-clip:text;background-clip:text;color:transparent">'
-    'Deepfakes</span></div>'
-    '<div style="font-size:12px;color:#6B6883;margin-top:3px">Imagen ViT · Audio Wav2Vec2 · Inferencia 100% local</div>'
+    '<div class="page-hdr-text">'
+    '<div class="page-hdr-title">Detector de <span class="page-hdr-grad">Deepfakes</span></div>'
+    '<div class="page-hdr-sub">Imagen ViT · Audio Wav2Vec2 · Inferencia 100% local</div>'
     '</div>'
-    '<div style="margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:11px;color:#6EE7B7;'
-    'background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:999px;padding:4px 11px;'
-    "font-family:'JetBrains Mono',monospace\">"
-    + _status_dot
-    + f' Listo · {device.upper()}</div>'
+    f'<div class="status-pill"><span class="status-dot"></span> Listo · {device.upper()}</div>'
     '</div>'
 )
 
@@ -704,7 +713,7 @@ with gr.Blocks(
     css=CUSTOM_CSS,
 ) as demo:
 
-    gr.Markdown(HEADER_HTML)
+    gr.HTML(HEADER_HTML)
 
     state = gr.State([])
 
