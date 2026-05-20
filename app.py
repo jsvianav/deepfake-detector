@@ -90,18 +90,16 @@ ChatHistory = list
 # Iconos SVG (atributos HTML, no camelCase de React)
 # ---------------------------------------------------------------------------
 def _svg(path_content: str, w: int = 15) -> str:
-    s = f'style="width:{w}px;height:{w}px;display:inline-block;vertical-align:middle"'
     attrs = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'
-    return f'<svg {attrs} {s}>{path_content}</svg>'
+    return f'<svg {attrs} width="{w}" height="{w}" class="df-svg-icon">{path_content}</svg>'
 
 _ICON_VIDEO  = _svg('<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>')
 _ICON_AUDIO  = _svg('<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>')
 _ICON_IMAGE  = _svg('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>')
 _ICON_SEARCH = _svg('<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/>')
 _ICON_ALERT  = (
-    '<svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="1.8" '
-    'stroke-linecap="round" stroke-linejoin="round" '
-    'style="width:13px;height:13px;flex-shrink:0;margin-top:1px">'
+    '<svg class="df-icon-alert" viewBox="0 0 24 24" fill="none" stroke="#F59E0B"'
+    ' stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
     '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>'
     '<line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
     '</svg>'
@@ -358,47 +356,113 @@ footer { display:none !important; }
   #chatbot { height:500px !important; }
   .gradio-container { padding:0 16px 40px !important; }
 }
+
+/* ══════════════════════════════════════════════════════════ */
+/* ── Tarjetas de resultado (clases en lugar de style="") ── */
+/* ══════════════════════════════════════════════════════════ */
+.df-svg-icon { display:inline-block; vertical-align:middle; }
+.df-icon-alert { width:13px; height:13px; flex-shrink:0; margin-top:1px; }
+.df-bar-svg { display:block; }
+
+.df-card { border-radius:14px; overflow:hidden; background:rgba(18,17,26,.92); border:1px solid rgba(124,58,237,.22); box-shadow:0 20px 48px -16px rgba(0,0,0,.7); font-family:Inter,system-ui,sans-serif; animation:scaleIn .45s cubic-bezier(.2,.7,.2,1) both; }
+.df-card-real { border-color:rgba(16,185,129,.28) !important; box-shadow:0 20px 48px -16px rgba(0,0,0,.7),0 0 40px -8px rgba(16,185,129,.16) !important; }
+.df-card-fake { border-color:rgba(239,68,68,.28) !important;  box-shadow:0 20px 48px -16px rgba(0,0,0,.7),0 0 40px -8px rgba(239,68,68,.20)  !important; }
+.df-card-amb  { border-color:rgba(245,158,11,.28) !important; box-shadow:0 20px 48px -16px rgba(0,0,0,.7),0 0 40px -8px rgba(245,158,11,.14) !important; }
+.df-card-err  { border-color:rgba(245,158,11,.30) !important; }
+
+.df-hdr { display:flex; align-items:center; gap:10px; padding:13px 18px; border-bottom:1px solid rgba(255,255,255,.06); }
+.df-hdr-icon { width:32px; height:32px; border-radius:9px; background:rgba(124,58,237,.1); border:1px solid rgba(124,58,237,.2); display:flex; align-items:center; justify-content:center; color:#A78BFA; flex-shrink:0; }
+.df-hdr-name { flex:1; min-width:0; font-family:'JetBrains Mono',monospace; font-size:12px; color:#F8F7FF; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500; }
+.df-err-body { padding:20px; color:#FCA5A5; font-size:13px; line-height:1.55; }
+
+.df-chip { display:inline-block; padding:3px 9px; border-radius:6px; background:rgba(124,58,237,.1); border:1px solid rgba(124,58,237,.2); font-size:10px; font-weight:600; color:#A78BFA; letter-spacing:.06em; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }
+.df-chip-green { background:rgba(16,185,129,.08); border-color:rgba(16,185,129,.2); color:#6EE7B7; }
+
+.df-verdict-wrap { padding:28px 22px 20px; text-align:center; }
+.df-pill { display:inline-flex; align-items:center; gap:7px; padding:5px 12px 5px 10px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; margin-bottom:18px; animation:fadeIn .4s ease .2s both; }
+.df-pill-real { background:rgba(16,185,129,.1); color:#6EE7B7; border:1px solid rgba(16,185,129,.3); }
+.df-pill-fake { background:rgba(239,68,68,.1);  color:#FCA5A5; border:1px solid rgba(239,68,68,.3); }
+.df-pill-amb  { background:rgba(245,158,11,.1); color:#FCD34D; border:1px solid rgba(245,158,11,.3); }
+.df-dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
+.df-dot-real { background:#10B981; box-shadow:0 0 6px #10B981; }
+.df-dot-fake { background:#EF4444; box-shadow:0 0 6px #EF4444; }
+.df-dot-amb  { background:#F59E0B; box-shadow:0 0 6px #F59E0B; }
+
+.df-score-big { font-size:60px; font-weight:600; letter-spacing:-.04em; line-height:1; color:#F8F7FF; font-variant-numeric:tabular-nums; }
+.df-score-pct { font-size:24px; color:#6B6883; font-weight:500; margin-left:3px; }
+.df-score-sub { font-size:12px; color:#6B6883; margin-top:8px; }
+
+.df-bar-wrap { padding:0 22px 22px; }
+.df-bar-scale { display:flex; justify-content:space-between; margin-top:10px; font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.04em; }
+.df-bar-real { color:#6EE7B7; }
+.df-bar-mid  { color:#6B6883; }
+.df-bar-fake { color:#FCA5A5; }
+
+.df-breakdown { border-top:1px solid rgba(255,255,255,.06); padding:14px 22px 16px; display:grid; grid-template-columns:1fr 1fr; }
+.df-bd-left  { padding-right:14px; }
+.df-bd-right { padding-left:14px; border-left:1px solid rgba(255,255,255,.06); }
+.df-mini-lbl  { display:flex; align-items:center; gap:6px; font-size:10px; color:#6B6883; text-transform:uppercase; letter-spacing:.07em; font-weight:500; margin-bottom:7px; }
+.df-mini-icon { color:#A78BFA; }
+.df-mini-num  { font-size:20px; font-weight:600; letter-spacing:-.025em; margin-bottom:6px; }
+.df-mini-real { color:#10B981; }
+.df-mini-fake { color:#EF4444; }
+.df-mini-na   { color:#6B6883; }
+.df-mini-pct  { font-size:12px; color:#6B6883; margin-left:1px; font-family:'JetBrains Mono',monospace; }
+.df-mini-meta { font-size:10px; color:#6B6883; font-family:'JetBrains Mono',monospace; margin-top:4px; }
+
+.df-details { border-top:1px solid rgba(255,255,255,.06); }
+.df-details > summary { list-style:none; padding:13px 22px; cursor:pointer; font-size:12.5px; color:#B8B5C8; display:flex; align-items:center; justify-content:space-between; user-select:none; }
+.df-details-arrow { font-size:10px; color:#6B6883; font-family:'JetBrains Mono',monospace; }
+.df-grid { padding:0 22px 16px; display:grid; grid-template-columns:max-content 1fr; gap:7px 20px; }
+.df-k { color:#6B6883; font-family:'JetBrains Mono',monospace; font-size:11px; }
+.df-v { color:#F8F7FF; font-weight:500; font-family:'JetBrains Mono',monospace; font-size:11px; }
+
+.df-notice { border-top:1px solid rgba(255,255,255,.06); padding:12px 22px; background:rgba(0,0,0,.2); font-size:11.5px; color:#B8B5C8; line-height:1.5; display:flex; gap:8px; align-items:flex-start; }
+
+/* ── Welcome card ─────────────────────────────────────────── */
+.df-welcome { border-radius:14px; overflow:hidden; background:rgba(124,58,237,.06); border:1px solid rgba(124,58,237,.15); padding:24px 22px; font-family:Inter,system-ui,sans-serif; animation:fadeIn .5s ease both; }
+.df-welcome-hdr { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.df-welcome-ico { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,#7C3AED,#5B21B6); display:flex; align-items:center; justify-content:center; box-shadow:0 0 14px rgba(124,58,237,.4); }
+.df-welcome-ttl { font-size:14px; font-weight:600; color:#F8F7FF; letter-spacing:-.01em; }
+.df-welcome-dsc { font-size:13px; color:#9CA3AF; line-height:1.65; margin:0 0 16px 0; }
+.df-welcome-hl  { color:#C4B5FD; }
+.df-fmt-lbl  { margin-bottom:10px; font-size:10px; font-weight:600; color:#6B6883; text-transform:uppercase; letter-spacing:.08em; }
+.df-fmt-grid { display:grid; grid-template-columns:auto 1fr; gap:8px 12px; align-items:center; }
+.df-fmt-type { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:600; color:#A78BFA; text-transform:uppercase; letter-spacing:.05em; }
+.df-chips-row { display:flex; flex-wrap:wrap; gap:5px; }
+.df-mt12 { margin-top:12px; }
 """
 
 # ---------------------------------------------------------------------------
 # Helpers HTML para tarjetas de resultados
 # ---------------------------------------------------------------------------
 
-def _chip(
-    text: str,
-    color: str = "#A78BFA",
-    bg: str = "rgba(124,58,237,.1)",
-    border: str = "rgba(124,58,237,.2)",
-) -> str:
-    return (
-        f'<span style="padding:3px 9px;border-radius:6px;background:{bg};border:1px solid {border};'
-        f'font-size:10px;font-weight:600;color:{color};letter-spacing:.06em;text-transform:uppercase;'
-        f"font-family:'JetBrains Mono',monospace\">{text}</span>"
-    )
+def _chip(text: str, kind: str = "") -> str:
+    extra = " df-chip-green" if kind == "green" else ""
+    return f'<span class="df-chip{extra}">{text}</span>'
 
 
 def _mini_bar(score_val: Optional[float], label: str, icon: str) -> str:
-    label_row = (
-        f'<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#6B6883;'
-        f'text-transform:uppercase;letter-spacing:.07em;font-weight:500;margin-bottom:7px">'
-        f'<span style="color:#A78BFA">{icon}</span>{label}</div>'
-    )
+    lbl = f'<div class="df-mini-lbl"><span class="df-mini-icon">{icon}</span>{label}</div>'
     if score_val is None:
         return (
-            label_row
-            + '<div style="font-size:20px;font-weight:600;color:#6B6883;margin-bottom:6px;letter-spacing:-.025em">—</div>'
-            + '<div style="height:3px;background:#1B1A26;border-radius:1.5px;margin-bottom:6px"></div>'
-            + "<div style=\"font-size:10px;color:#6B6883;font-family:'JetBrains Mono',monospace\">sin datos</div>"
+            lbl
+            + '<div class="df-mini-num df-mini-na">—</div>'
+            + '<svg class="df-bar-svg" width="100%" height="3" viewBox="0 0 100 3" preserveAspectRatio="none">'
+            + '<rect x="0" y="0" width="100" height="3" rx="1.5" fill="#1B1A26"/>'
+            + '</svg>'
+            + '<div class="df-mini-meta">sin datos</div>'
         )
-    c = "#EF4444" if score_val > 0.5 else "#10B981"
     p = score_val * 100
+    sc_cls = "df-mini-fake" if score_val > 0.5 else "df-mini-real"
+    fill   = "#EF4444" if score_val > 0.5 else "#10B981"
     return (
-        label_row
-        + f'<div style="font-size:20px;font-weight:600;letter-spacing:-.025em;margin-bottom:6px;color:{c}">'
-        + f'{p:.1f}<span style="font-size:12px;color:#6B6883;margin-left:1px">%</span></div>'
-        + f'<div style="height:3px;background:#1B1A26;border-radius:1.5px;overflow:hidden;margin-bottom:6px">'
-        + f'<div style="height:100%;width:{p:.1f}%;background:{c};border-radius:inherit;'
-        + f'animation:barFill .8s cubic-bezier(.2,.7,.2,1) .25s both"></div></div>'
+        lbl
+        + f'<div class="df-mini-num {sc_cls}">{p:.1f}<span class="df-mini-pct">%</span></div>'
+        + f'<svg class="df-bar-svg" width="100%" height="3" viewBox="0 0 100 3" preserveAspectRatio="none">'
+        + f'<rect x="0" y="0" width="100" height="3" rx="1.5" fill="#1B1A26"/>'
+        + f'<rect x="0" y="0" width="{p:.2f}" height="3" rx="1.5" fill="{fill}"/>'
+        + '</svg>'
     )
 
 
@@ -411,15 +475,13 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
 
     if result.error:
         return (
-            '<div style="border-radius:14px;overflow:hidden;background:rgba(18,17,26,.9);'
-            'border:1px solid rgba(245,158,11,.3);font-family:Inter,system-ui,sans-serif;'
-            'box-shadow:0 20px 40px -16px rgba(0,0,0,.6);animation:scaleIn .45s cubic-bezier(.2,.7,.2,1) both">'
-            '<div style="display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.06)">'
-            f'<div style="width:32px;height:32px;border-radius:9px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);display:flex;align-items:center;justify-content:center;color:#A78BFA;flex-shrink:0">{_ICON_IMAGE}</div>'
-            f"<div style=\"flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:12px;color:#F8F7FF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500\">{file_name}</div>"
-            + _chip("ERROR", "#FCD34D", "rgba(245,158,11,.1)", "rgba(245,158,11,.3)") +
+            '<div class="df-card df-card-err">'
+            '<div class="df-hdr">'
+            f'<div class="df-hdr-icon">{_ICON_IMAGE}</div>'
+            f'<div class="df-hdr-name">{file_name}</div>'
+            + _chip("ERROR") +
             '</div>'
-            f'<div style="padding:20px;color:#FCA5A5;font-size:13px;line-height:1.55">{result.error}</div>'
+            f'<div class="df-err-body">{result.error}</div>'
             '</div>'
         )
 
@@ -427,22 +489,19 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
     pct   = score * 100
 
     if score > 0.57:
-        kind, verdict_label     = "fake", "Contenido sintético"
-        fill_c, fill_sh         = "#EF4444", "rgba(239,68,68,.5)"
-        pill_bg, pill_c, pill_b = "rgba(239,68,68,.1)", "#FCA5A5", "rgba(239,68,68,.3)"
-        card_b, card_sh         = "rgba(239,68,68,.25)", "rgba(239,68,68,.18)"
+        verdict_label = "Contenido sintético"
+        fill_c = "#EF4444"
+        card_cls, pill_cls, dot_cls = "df-card-fake", "df-pill-fake", "df-dot-fake"
     elif score <= 0.40:
-        kind, verdict_label     = "real", "Contenido auténtico"
-        fill_c, fill_sh         = "#10B981", "rgba(16,185,129,.5)"
-        pill_bg, pill_c, pill_b = "rgba(16,185,129,.1)", "#6EE7B7", "rgba(16,185,129,.3)"
-        card_b, card_sh         = "rgba(16,185,129,.25)", "rgba(16,185,129,.15)"
+        verdict_label = "Contenido auténtico"
+        fill_c = "#10B981"
+        card_cls, pill_cls, dot_cls = "df-card-real", "df-pill-real", "df-dot-real"
     else:
-        kind, verdict_label     = "amb", "Resultado inconcluso"
-        fill_c, fill_sh         = "#F59E0B", "rgba(245,158,11,.4)"
-        pill_bg, pill_c, pill_b = "rgba(245,158,11,.1)", "#FCD34D", "rgba(245,158,11,.3)"
-        card_b, card_sh         = "rgba(245,158,11,.25)", "rgba(245,158,11,.12)"
+        verdict_label = "Resultado inconcluso"
+        fill_c = "#F59E0B"
+        card_cls, pill_cls, dot_cls = "df-card-amb", "df-pill-amb", "df-dot-amb"
 
-    thumb = _TYPE_ICON.get(result.file_type, _ICON_IMAGE)
+    thumb      = _TYPE_ICON.get(result.file_type, _ICON_IMAGE)
     type_label = result.file_type.upper()
 
     # ── Desglose (solo video) ──────────────────────────────────────────
@@ -451,26 +510,21 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
         audio_score = result.audio_score if result.had_audio else None
         audio_meta  = "wav2vec2 · 16 kHz" if result.had_audio else "sin pista de audio"
         breakdown = (
-            '<div style="border-top:1px solid rgba(255,255,255,.06);padding:14px 22px 16px;'
-            'display:grid;grid-template-columns:1fr 1fr;gap:0">'
-            '<div style="padding-right:14px">'
+            '<div class="df-breakdown">'
+            '<div class="df-bd-left">'
             + _mini_bar(result.video_score, "Visual", _ICON_VIDEO)
-            + f"<div style=\"font-size:10px;color:#6B6883;font-family:'JetBrains Mono',monospace\">{result.frame_count} fotogramas · 1 fps</div>"
+            + f'<div class="df-mini-meta">{result.frame_count} fotogramas · 1 fps</div>'
             + '</div>'
-            '<div style="padding-left:14px;border-left:1px solid rgba(255,255,255,.06)">'
+            '<div class="df-bd-right">'
             + _mini_bar(audio_score, "Audio", _ICON_AUDIO)
-            + f"<div style=\"font-size:10px;color:#6B6883;font-family:'JetBrains Mono',monospace\">{audio_meta}</div>"
+            + f'<div class="df-mini-meta">{audio_meta}</div>'
             + '</div>'
             '</div>'
         )
 
     # ── Filas de detalles forenses ─────────────────────────────────────
     def _tr(k: str, v: str) -> str:
-        mono = "font-family:'JetBrains Mono',monospace;font-size:11px"
-        return (
-            f'<span style="color:#6B6883;{mono}">{k}</span>'
-            f'<span style="color:#F8F7FF;font-weight:500;{mono}">{v}</span>'
-        )
+        return f'<span class="df-k">{k}</span><span class="df-v">{v}</span>'
 
     tech = _tr("puntaje_fusionado", f"{result.fused_score:.4f}")
     if result.video_score is not None:
@@ -482,65 +536,54 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
     tech += _tr("tipo_archivo", result.file_type)
     tech += _tr("dispositivo",  device)
 
+    # Barra principal con SVG (los atributos SVG no son sanitizados)
+    nx = max(1.0, min(99.0, pct))
+    bar_svg = (
+        f'<svg class="df-bar-svg" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none">'
+        f'<rect x="0" y="3" width="100" height="6" rx="3" fill="#1B1A26"/>'
+        f'<rect x="0" y="3" width="{pct:.2f}" height="6" rx="3" fill="{fill_c}"/>'
+        f'<rect x="{nx:.2f}" y="0" width="2" height="12" rx="1" fill="white" transform="translate(-1,0)"/>'
+        f'</svg>'
+    )
+
     # ── Ensamblado ─────────────────────────────────────────────────────
     return (
-        # Envoltorio de tarjeta
-        f'<div style="border-radius:14px;overflow:hidden;background:rgba(18,17,26,.9);'
-        f'border:1px solid {card_b};'
-        f'box-shadow:0 20px 40px -16px rgba(0,0,0,.65),0 0 40px -8px {card_sh};'
-        f'font-family:Inter,system-ui,sans-serif;'
-        f'animation:scaleIn .45s cubic-bezier(.2,.7,.2,1) both">'
+        f'<div class="df-card {card_cls}">'
 
-        # Barra superior: icono + nombre de archivo + chip de tipo
-        f'<div style="display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.06)">'
-        f'<div style="width:32px;height:32px;border-radius:9px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2);display:flex;align-items:center;justify-content:center;color:#A78BFA;flex-shrink:0">{thumb}</div>'
-        f"<div style=\"flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:12px;color:#F8F7FF;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500\">{file_name}</div>"
+        f'<div class="df-hdr">'
+        f'<div class="df-hdr-icon">{thumb}</div>'
+        f'<div class="df-hdr-name">{file_name}</div>'
         + _chip(type_label) +
         '</div>'
 
-        # Veredicto: pastilla + número de puntuación grande
-        f'<div style="padding:28px 22px 20px;text-align:center">'
-        f'<div style="display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 10px;border-radius:999px;'
-        f'font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:18px;'
-        f'background:{pill_bg};color:{pill_c};border:1px solid {pill_b};animation:fadeIn .4s ease .2s both">'
-        f'<span style="width:6px;height:6px;border-radius:50%;background:{fill_c};box-shadow:0 0 6px {fill_c};display:inline-block"></span>'
+        f'<div class="df-verdict-wrap">'
+        f'<div class="df-pill {pill_cls}">'
+        f'<span class="df-dot {dot_cls}"></span>'
         f'{verdict_label}</div>'
-        f'<div style="font-size:60px;font-weight:600;letter-spacing:-.04em;line-height:1;color:#F8F7FF;font-variant-numeric:tabular-nums">'
-        f'{pct:.1f}<span style="font-size:24px;color:#6B6883;font-weight:500;margin-left:3px">%</span></div>'
-        f'<div style="font-size:12px;color:#6B6883;margin-top:8px">probabilidad de contenido sintético</div>'
+        f'<div class="df-score-big">{pct:.1f}<span class="df-score-pct">%</span></div>'
+        f'<div class="df-score-sub">probabilidad de contenido sintético</div>'
         f'</div>'
 
-        # Barra de escala animada con aguja
-        f'<div style="padding:0 22px 22px">'
-        f'<div style="position:relative;height:6px;background:#1B1A26;border-radius:3px;overflow:visible">'
-        f'<div style="position:absolute;left:0;top:0;bottom:0;width:{pct:.1f}%;border-radius:3px;'
-        f'background:{fill_c};box-shadow:0 0 12px {fill_sh};animation:barFill .9s cubic-bezier(.2,.7,.2,1) both"></div>'
-        f'<div style="position:absolute;top:-3px;bottom:-3px;left:{pct:.1f}%;width:2px;background:#fff;'
-        f'border-radius:1px;transform:translateX(-50%);'
-        f'box-shadow:0 0 0 2px rgba(10,10,15,.6),0 0 8px #fff;'
-        f'animation:needleSlide .6s cubic-bezier(.2,.7,.2,1) .35s both"></div>'
-        f'</div>'
-        f"<div style=\"display:flex;justify-content:space-between;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.04em\">"
-        f'<span style="color:#6EE7B7">0% — Auténtico</span>'
-        f'<span style="color:#6B6883">50</span>'
-        f'<span style="color:#FCA5A5">100% — Sintético</span>'
+        f'<div class="df-bar-wrap">'
+        + bar_svg +
+        f'<div class="df-bar-scale">'
+        f'<span class="df-bar-real">0% — Auténtico</span>'
+        f'<span class="df-bar-mid">50</span>'
+        f'<span class="df-bar-fake">100% — Sintético</span>'
         f'</div></div>'
 
         + breakdown +
 
-        # Detalles forenses desplegables
-        '<details style="border-top:1px solid rgba(255,255,255,.06)">'
-        '<summary style="list-style:none;padding:13px 22px;cursor:pointer;font-size:12.5px;color:#B8B5C8;'
-        'display:flex;align-items:center;justify-content:space-between;user-select:none">'
+        '<details class="df-details">'
+        '<summary>'
         '<span>Detalles forenses</span>'
-        "<span style=\"font-size:10px;color:#6B6883;font-family:'JetBrains Mono',monospace\">▼</span></summary>"
-        '<div style="padding:0 22px 16px;display:grid;grid-template-columns:max-content 1fr;gap:7px 20px">'
+        '<span class="df-details-arrow">▼</span>'
+        '</summary>'
+        '<div class="df-grid">'
         + tech +
         '</div></details>'
 
-        # Aviso legal
-        '<div style="border-top:1px solid rgba(255,255,255,.06);padding:12px 22px;background:rgba(0,0,0,.2);'
-        'font-size:11.5px;color:#B8B5C8;line-height:1.5;display:flex;gap:8px;align-items:flex-start">'
+        '<div class="df-notice">'
         + _ICON_ALERT +
         '<span>La detección es probabilística, no definitiva. El resultado es una señal de referencia — '
         'revisa los detalles forenses y el contexto antes de sacar conclusiones.</span>'
@@ -616,57 +659,47 @@ HEADER_HTML = (
 )
 
 WELCOME_HTML = (
-    '<div style="border-radius:14px;overflow:hidden;background:rgba(124,58,237,.06);'
-    'border:1px solid rgba(124,58,237,.15);padding:24px 22px;font-family:Inter,system-ui,sans-serif;'
-    'animation:fadeIn .5s ease both">'
-    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">'
-    '<div style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#7C3AED,#5B21B6);'
-    'display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px rgba(124,58,237,.4)">'
-    + _ICON_SEARCH +
+    '<div class="df-welcome">'
+    '<div class="df-welcome-hdr">'
+    '<div class="df-welcome-ico">'
+    + _svg('<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/>', 14) +
     '</div>'
-    '<div style="font-size:14px;font-weight:600;color:#F8F7FF;letter-spacing:-.01em">Listo para analizar</div>'
+    '<div class="df-welcome-ttl">Listo para analizar</div>'
     '</div>'
-    '<p style="font-size:13px;color:#9CA3AF;line-height:1.65;margin:0 0 16px 0">'
-    'Sube un archivo de <strong style="color:#C4B5FD">video</strong>, <strong style="color:#C4B5FD">audio</strong> o '
-    '<strong style="color:#C4B5FD">imagen</strong> en el panel de la derecha y haz clic en '
-    '<strong style="color:#C4B5FD">Analizar</strong>. Todo se procesa localmente — tus archivos nunca salen de este equipo.'
+    '<p class="df-welcome-dsc">'
+    'Sube un archivo de <strong class="df-welcome-hl">video</strong>, '
+    '<strong class="df-welcome-hl">audio</strong> o '
+    '<strong class="df-welcome-hl">imagen</strong> en el panel de la derecha y haz clic en '
+    '<strong class="df-welcome-hl">Analizar</strong>. '
+    'Todo se procesa localmente — tus archivos nunca salen de este equipo.'
     '</p>'
-    # Formatos aceptados
-    '<div style="margin-bottom:10px;font-size:10px;font-weight:600;color:#6B6883;text-transform:uppercase;letter-spacing:.08em">'
-    'Formatos aceptados</div>'
-    '<div style="display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center">'
+    '<div class="df-fmt-lbl">Formatos aceptados</div>'
+    '<div class="df-fmt-grid">'
 
-    # Video row
-    '<div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:#A78BFA;'
-    'text-transform:uppercase;letter-spacing:.05em">'
+    '<div class="df-fmt-type">'
     + _svg('<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>', 12) +
     ' Video</div>'
-    '<div style="display:flex;flex-wrap:wrap;gap:5px">'
+    '<div class="df-chips-row">'
     + _chip("mp4") + _chip("mov") + _chip("avi") + _chip("webm") +
     '</div>'
 
-    # Audio row
-    '<div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:#A78BFA;'
-    'text-transform:uppercase;letter-spacing:.05em">'
+    '<div class="df-fmt-type">'
     + _svg('<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>', 12) +
     ' Audio</div>'
-    '<div style="display:flex;flex-wrap:wrap;gap:5px">'
+    '<div class="df-chips-row">'
     + _chip("mp3") + _chip("wav") + _chip("m4a") + _chip("ogg") +
     '</div>'
 
-    # Imagen row
-    '<div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:#A78BFA;'
-    'text-transform:uppercase;letter-spacing:.05em">'
+    '<div class="df-fmt-type">'
     + _svg('<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>', 12) +
     ' Imagen</div>'
-    '<div style="display:flex;flex-wrap:wrap;gap:5px">'
+    '<div class="df-chips-row">'
     + _chip("jpg") + _chip("jpeg") + _chip("png") +
     '</div>'
 
-    '</div>'  # fin grid
-
-    '<div style="margin-top:12px">'
-    + _chip("máx. 100 MB", "#6EE7B7", "rgba(16,185,129,.08)", "rgba(16,185,129,.2)") +
+    '</div>'
+    '<div class="df-mt12">'
+    + _chip("máx. 100 MB", "green") +
     '</div>'
     '</div>'
 )
