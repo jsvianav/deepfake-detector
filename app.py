@@ -84,8 +84,6 @@ ACCEPTED_EXTENSIONS = [
     ".jpg", ".jpeg", ".png",
 ]
 
-ChatHistory = list
-
 # ---------------------------------------------------------------------------
 # Iconos SVG (atributos HTML, no camelCase de React)
 # ---------------------------------------------------------------------------
@@ -159,9 +157,8 @@ html, body, .gradio-container, #app, gradio-app {
   margin-bottom: 24px !important;
 }
 
-/* ── Panel del chatbot ───────────────────────────────────── */
-#chatbot {
-  height: 620px !important;
+/* ── Panel de chat (gr.HTML) ─────────────────────────────── */
+#chat-panel {
   background: rgba(12,11,20,.75) !important;
   border: 1px solid rgba(124,58,237,.15) !important;
   border-radius: 18px !important;
@@ -169,60 +166,35 @@ html, body, .gradio-container, #app, gradio-app {
   -webkit-backdrop-filter: blur(20px) !important;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.04),
-    0 24px 60px -20px rgba(0,0,0,.65),
-    0 0 0 1px rgba(124,58,237,.04) !important;
-  padding: 4px !important;
+    0 24px 60px -20px rgba(0,0,0,.65) !important;
+  overflow: hidden !important;
 }
-#chatbot .wrapper,
-#chatbot .bubble-wrap { background:transparent !important; border:none !important; }
+#chat-panel > .wrap { padding:0 !important; }
 
-/* Burbuja del bot — transparente para que se vean las tarjetas HTML */
-#chatbot .message.bot,
-#chatbot .bot-row .message,
-#chatbot div[data-testid="bot"],
-#chatbot .message-row.bot .message-bubble {
-  background: transparent !important;
-  border: none !important;
-  padding: 4px 0 !important;
-  animation: fadeSlideUp 0.28s ease both !important;
+.chat-scroll {
+  height: 620px;
+  overflow-y: auto;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
 }
+.chat-scroll::-webkit-scrollbar { width:4px; }
+.chat-scroll::-webkit-scrollbar-thumb { background:rgba(124,58,237,.35); border-radius:2px; }
 
-/* Burbuja del usuario */
-#chatbot .message.user,
-#chatbot .user-row .message,
-#chatbot div[data-testid="user"],
-#chatbot .message-row.user .message-bubble {
-  background: rgba(124,58,237,.08) !important;
-  color: #C4B5FD !important;
-  border: 1px solid rgba(124,58,237,.2) !important;
-  border-radius: 14px 14px 4px 14px !important;
-  padding: 10px 14px !important;
-  font-size: 13.5px !important;
-  animation: fadeSlideUp 0.25s ease both !important;
+.chat-bubble-user {
+  align-self: flex-end;
+  background: rgba(124,58,237,.08);
+  color: #C4B5FD;
+  border: 1px solid rgba(124,58,237,.2);
+  border-radius: 14px 14px 4px 14px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  max-width: 80%;
+  animation: fadeSlideUp 0.25s ease both;
+  font-family: Inter, system-ui, sans-serif;
 }
-
-/* Tipografía dentro de burbujas */
-#chatbot strong  { color:#F8F7FF !important; }
-#chatbot code    {
-  background: rgba(124,58,237,.12) !important;
-  color: #A78BFA !important;
-  border-radius: 4px !important;
-  padding: 1px 5px !important;
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 12px !important;
-}
-#chatbot blockquote {
-  border-left: 3px solid rgba(124,58,237,.4) !important;
-  padding-left: 12px !important;
-  margin-left: 0 !important;
-  color: #9CA3AF !important;
-  font-style: italic !important;
-}
-#chatbot h2 { font-size:16px !important; font-weight:600 !important; color:#F8F7FF !important; margin:0 0 8px !important; }
-#chatbot h3 { font-size:11px !important; font-weight:600 !important; color:#6B6883 !important; text-transform:uppercase !important; letter-spacing:.07em !important; margin:12px 0 6px !important; }
-#chatbot ul { padding-left:16px !important; margin:4px 0 !important; }
-#chatbot li { margin:3px 0 !important; color:#B8B5C8 !important; }
-#chatbot p  { color:#B8B5C8 !important; line-height:1.6 !important; }
 
 /* ── Panel derecho (tarjeta de subida) ───────────────────── */
 .right-panel {
@@ -594,37 +566,55 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Renderizador de historial de chat
+# ---------------------------------------------------------------------------
+
+def _render_chat(items: list) -> str:
+    """Convierte la lista de mensajes en HTML completo para gr.HTML."""
+    if not items:
+        return f'<div class="chat-scroll">{WELCOME_HTML}</div>'
+    parts = []
+    for item in items:
+        if item.get("user"):
+            parts.append(
+                f'<div class="chat-bubble-user">📎 <strong>{item["user"]}</strong></div>'
+            )
+        parts.append(item["bot"])
+    return '<div class="chat-scroll">' + "".join(parts) + "</div>"
+
+
+# ---------------------------------------------------------------------------
 # Manejador principal de inferencia
 # ---------------------------------------------------------------------------
 
-def analyse_file(file_obj, history: ChatHistory) -> Tuple[ChatHistory, ChatHistory, None]:
+def analyse_file(file_obj, history: list):
     if file_obj is None:
-        history = history + [{"role": "assistant", "content": "⚠️ Por favor sube un archivo antes de analizar."}]
-        return history, history, None
+        err = '<div class="df-notice" style="border-radius:10px;margin-top:4px">⚠️ Por favor sube un archivo antes de analizar.</div>'
+        history = history + [{"user": "", "bot": err}]
+        return _render_chat(history), history, None
 
     file_path = file_obj if isinstance(file_obj, str) else getattr(file_obj, "name", str(file_obj))
 
     if not file_path or not Path(file_path).is_file():
-        history = history + [{"role": "assistant", "content": "⚠️ Archivo inválido. Por favor sube un video, audio o imagen."}]
-        return history, history, None
+        err = '<div class="df-notice" style="border-radius:10px;margin-top:4px">⚠️ Archivo inválido. Por favor sube un video, audio o imagen.</div>'
+        history = history + [{"user": "", "bot": err}]
+        return _render_chat(history), history, None
 
     file_name = Path(file_path).name
-    user_msg  = f"📎 **{file_name}**"
-    history   = history + [{"role": "user", "content": user_msg}]
 
     try:
         result: DetectionResult = _orchestrator.analyse(file_path)
-        bot_msg = _format_result(result, file_name)
+        bot_html = _format_result(result, file_name)
     except Exception as exc:  # noqa: BLE001
         logger.exception("Error inesperado al analizar %s", file_path)
-        bot_msg = f"❌ Error inesperado: {exc}"
+        bot_html = f'<div class="df-notice" style="border-radius:10px;margin-top:4px">❌ Error inesperado: {exc}</div>'
 
-    history = history + [{"role": "assistant", "content": bot_msg}]
-    return history, history, None
+    history = history + [{"user": file_name, "bot": bot_html}]
+    return _render_chat(history), history, None
 
 
 def clear_history():
-    return [], [], None
+    return _render_chat([]), [], None
 
 
 # ---------------------------------------------------------------------------
@@ -720,13 +710,9 @@ with gr.Blocks(
 
     with gr.Row(equal_height=False):
         with gr.Column(scale=3):
-            chatbot = gr.Chatbot(
-                value=[{"role": "assistant", "content": WELCOME_HTML}],
-                elem_id="chatbot",
-                label="Análisis",
-                bubble_full_width=False,
-                show_label=False,
-                type="messages",
+            chat_panel = gr.HTML(
+                value=_render_chat([]),
+                elem_id="chat-panel",
             )
 
         with gr.Column(scale=1, elem_classes=["right-panel"]):
@@ -752,16 +738,16 @@ with gr.Blocks(
     analyse_btn.click(
         fn=analyse_file,
         inputs=[file_input, state],
-        outputs=[chatbot, state, file_input],
+        outputs=[chat_panel, state, file_input],
     )
     file_input.upload(
         fn=analyse_file,
         inputs=[file_input, state],
-        outputs=[chatbot, state, file_input],
+        outputs=[chat_panel, state, file_input],
     )
     clear_btn.click(
         fn=clear_history,
-        outputs=[chatbot, state, file_input],
+        outputs=[chat_panel, state, file_input],
     )
 
 # ---------------------------------------------------------------------------
