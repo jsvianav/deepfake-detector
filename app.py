@@ -25,15 +25,16 @@ if not hasattr(_hfhub, "HfFolder"):
 
 import gradio as gr
 
-# gradio_client bug: get_type() crashes on boolean JSON Schema values (additionalProperties: true).
-# Patch it before any request triggers get_api_info().
+# gradio_client bug: _json_schema_to_python_type() crashes when additionalProperties is a
+# boolean (True) instead of a dict. Patch the module-level name so recursive calls also
+# hit the guard (Python resolves LOAD_GLOBAL through the module __dict__ at call time).
 import gradio_client.utils as _gc_utils
-_orig_get_type = _gc_utils.get_type
-def _patched_get_type(schema):
+_orig_schema_to_py = _gc_utils._json_schema_to_python_type
+def _patched_schema_to_py(schema, defs=None):
     if not isinstance(schema, dict):
         return "Any"
-    return _orig_get_type(schema)
-_gc_utils.get_type = _patched_get_type
+    return _orig_schema_to_py(schema, defs)
+_gc_utils._json_schema_to_python_type = _patched_schema_to_py
 
 import torch
 
