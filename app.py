@@ -215,6 +215,7 @@ html, body, .gradio-container, #app, gradio-app {
   max-width: 80%;
   animation: fadeSlideUp 0.25s ease both;
   font-family: 'Poppins', system-ui, sans-serif;
+  flex-shrink: 0;
 }
 
 /* ── Panel derecho (tarjeta de subida) ───────────────────── */
@@ -357,7 +358,7 @@ footer { display:none !important; }
 .df-icon-alert { width:13px; height:13px; flex-shrink:0; margin-top:1px; }
 .df-bar-svg { display:block; }
 
-.df-card { border-radius:14px; overflow:hidden; background:rgba(18,17,26,.92); border:1px solid rgba(124,58,237,.22); box-shadow:0 20px 48px -16px rgba(0,0,0,.7); font-family:'Poppins',system-ui,sans-serif; animation:scaleIn .45s cubic-bezier(.2,.7,.2,1) both; }
+.df-card { border-radius:14px; overflow:hidden; background:rgba(18,17,26,.92); border:1px solid rgba(124,58,237,.22); box-shadow:0 20px 48px -16px rgba(0,0,0,.7); font-family:'Poppins',system-ui,sans-serif; animation:scaleIn .45s cubic-bezier(.2,.7,.2,1) both; flex-shrink:0; }
 .df-card-real { border-color:rgba(16,185,129,.28) !important; box-shadow:0 20px 48px -16px rgba(0,0,0,.7),0 0 40px -8px rgba(16,185,129,.16) !important; }
 .df-card-fake { border-color:rgba(239,68,68,.28) !important;  box-shadow:0 20px 48px -16px rgba(0,0,0,.7),0 0 40px -8px rgba(239,68,68,.20)  !important; }
 .df-card-amb  { border-color:rgba(245,158,11,.28) !important; box-shadow:0 20px 48px -16px rgba(0,0,0,.7),0 0 40px -8px rgba(245,158,11,.14) !important; }
@@ -739,20 +740,22 @@ with gr.Blocks(
             analyse_btn = gr.Button("Analizar", variant="primary", size="lg")
             clear_btn   = gr.Button("Limpiar chat", variant="secondary")
 
+    _scroll_js = "() => setTimeout(() => { var c = document.querySelector('.chat-scroll'); if(c) c.scrollTop = c.scrollHeight; }, 120)"
+
     analyse_btn.click(
         fn=analyse_file,
         inputs=[file_input, state],
         outputs=[chat_panel, state, file_input],
-    )
+    ).then(fn=None, js=_scroll_js)
     file_input.upload(
         fn=analyse_file,
         inputs=[file_input, state],
         outputs=[chat_panel, state, file_input],
-    )
+    ).then(fn=None, js=_scroll_js)
     clear_btn.click(
         fn=clear_history,
         outputs=[chat_panel, state, file_input],
-    )
+    ).then(fn=None, js=_scroll_js)
 
 # ---------------------------------------------------------------------------
 # Punto de entrada
