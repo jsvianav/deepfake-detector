@@ -109,7 +109,7 @@ _TYPE_ICON = {"video": _ICON_VIDEO, "audio": _ICON_AUDIO, "image": _ICON_IMAGE}
 # CSS — tema oscuro premium
 # ---------------------------------------------------------------------------
 CUSTOM_CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ── Keyframes ───────────────────────────────────────────── */
 @keyframes fadeSlideUp  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
@@ -124,7 +124,7 @@ CUSTOM_CSS = """
 html, body, .gradio-container, #app, gradio-app {
   background: #0A0A0F !important;
   color: #F8F7FF !important;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
   letter-spacing: -0.011em !important;
@@ -214,7 +214,7 @@ html, body, .gradio-container, #app, gradio-app {
   font-size: 13.5px;
   max-width: 80%;
   animation: fadeSlideUp 0.25s ease both;
-  font-family: Inter, system-ui, sans-serif;
+  font-family: 'Poppins', system-ui, sans-serif;
 }
 
 /* ── Panel derecho (tarjeta de subida) ───────────────────── */
@@ -258,7 +258,7 @@ html, body, .gradio-container, #app, gradio-app {
   box-shadow: 0 0 24px rgba(124,58,237,.15) !important;
 }
 .upload-area svg, .upload-area .icon { color:#A78BFA !important; }
-.upload-area label, .upload-area span, .upload-area button { color:#6B6883 !important; font-size:13px !important; }
+.upload-area label, .upload-area span, .upload-area button { color:#F8F7FF !important; font-size:13px !important; }
 .upload-area button { background:transparent !important; border:none !important; }
 .upload-area .file-preview, .upload-area [data-testid="file-upload"] { background:transparent !important; border:none !important; }
 
@@ -357,7 +357,7 @@ footer { display:none !important; }
 .df-icon-alert { width:13px; height:13px; flex-shrink:0; margin-top:1px; }
 .df-bar-svg { display:block; }
 
-.df-card { border-radius:14px; overflow:hidden; background:rgba(18,17,26,.92); border:1px solid rgba(124,58,237,.22); box-shadow:0 20px 48px -16px rgba(0,0,0,.7); font-family:Inter,system-ui,sans-serif; animation:scaleIn .45s cubic-bezier(.2,.7,.2,1) both; }
+.df-card { border-radius:14px; overflow:hidden; background:rgba(18,17,26,.92); border:1px solid rgba(124,58,237,.22); box-shadow:0 20px 48px -16px rgba(0,0,0,.7); font-family:'Poppins',system-ui,sans-serif; animation:scaleIn .45s cubic-bezier(.2,.7,.2,1) both; }
 .df-card-real { border-color:rgba(16,185,129,.28) !important; box-shadow:0 20px 48px -16px rgba(0,0,0,.7),0 0 40px -8px rgba(16,185,129,.16) !important; }
 .df-card-fake { border-color:rgba(239,68,68,.28) !important;  box-shadow:0 20px 48px -16px rgba(0,0,0,.7),0 0 40px -8px rgba(239,68,68,.20)  !important; }
 .df-card-amb  { border-color:rgba(245,158,11,.28) !important; box-shadow:0 20px 48px -16px rgba(0,0,0,.7),0 0 40px -8px rgba(245,158,11,.14) !important; }
@@ -413,7 +413,7 @@ footer { display:none !important; }
 .df-notice { border-top:1px solid rgba(255,255,255,.06); padding:12px 22px; background:rgba(0,0,0,.2); font-size:11.5px; color:#B8B5C8; line-height:1.5; display:flex; gap:8px; align-items:flex-start; }
 
 /* ── Welcome card ─────────────────────────────────────────── */
-.df-welcome { border-radius:14px; overflow:hidden; background:rgba(124,58,237,.06); border:1px solid rgba(124,58,237,.15); padding:24px 22px; font-family:Inter,system-ui,sans-serif; animation:fadeIn .5s ease both; }
+.df-welcome { border-radius:14px; overflow:hidden; background:rgba(124,58,237,.06); border:1px solid rgba(124,58,237,.15); padding:24px 22px; font-family:'Poppins',system-ui,sans-serif; animation:fadeIn .5s ease both; }
 .df-welcome-hdr { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
 .df-welcome-ico { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,#7C3AED,#5B21B6); display:flex; align-items:center; justify-content:center; box-shadow:0 0 14px rgba(124,58,237,.4); }
 .df-welcome-ttl { font-size:14px; font-weight:600; color:#F8F7FF; letter-spacing:-.01em; }
@@ -708,7 +708,7 @@ with gr.Blocks(
     theme=gr.themes.Soft(
         primary_hue="purple",
         neutral_hue="slate",
-        font=[gr.themes.GoogleFont("Inter"), "system-ui", "sans-serif"],
+        font=[gr.themes.GoogleFont("Poppins"), "system-ui", "sans-serif"],
     ),
     css=CUSTOM_CSS,
 ) as demo:
@@ -733,16 +733,6 @@ with gr.Blocks(
             )
             analyse_btn = gr.Button("Analizar", variant="primary", size="lg")
             clear_btn   = gr.Button("Limpiar chat", variant="secondary")
-
-            gr.Markdown(
-                "**Modelos**\n\n"
-                "**Imagen / Video**\n\n"
-                "Face-swap — `prithivMLmods/Deep-Fake-Detector-Model` (ViT, recorte facial)\n\n"
-                "Contenido IA — `haywoodsloan/ai-image-detector-deploy` (SwinV2 0.2B, frame completo)\n\n"
-                "**Audio**\n\n"
-                "Voz — `garystafford/wav2vec2-deepfake-voice-detector` (Wav2Vec2)\n\n"
-                "100% local · sin APIs externas · código abierto"
-            )
 
     analyse_btn.click(
         fn=analyse_file,
