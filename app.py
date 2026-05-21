@@ -372,14 +372,13 @@ footer { display:none !important; }
 .df-chip-green { background:rgba(16,185,129,.08); border-color:rgba(16,185,129,.2); color:#6EE7B7; }
 
 .df-verdict-wrap { padding:28px 22px 20px; text-align:center; }
-.df-pill { display:inline-flex; align-items:center; gap:7px; padding:5px 12px 5px 10px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; margin-bottom:18px; animation:fadeIn .4s ease .2s both; }
-.df-pill-real { background:rgba(16,185,129,.1); color:#6EE7B7; border:1px solid rgba(16,185,129,.3); }
-.df-pill-fake { background:rgba(239,68,68,.1);  color:#FCA5A5; border:1px solid rgba(239,68,68,.3); }
-.df-pill-amb  { background:rgba(245,158,11,.1); color:#FCD34D; border:1px solid rgba(245,158,11,.3); }
-.df-dot { width:6px; height:6px; border-radius:50%; display:inline-block; }
-.df-dot-real { background:#10B981; box-shadow:0 0 6px #10B981; }
-.df-dot-fake { background:#EF4444; box-shadow:0 0 6px #EF4444; }
-.df-dot-amb  { background:#F59E0B; box-shadow:0 0 6px #F59E0B; }
+
+.df-verdict-emoji { font-size:38px; line-height:1; margin-bottom:10px; }
+.df-verdict-title { font-size:22px; font-weight:700; letter-spacing:-.025em; margin-bottom:10px; }
+.df-vt-real { color:#10B981; }
+.df-vt-fake { color:#EF4444; }
+.df-vt-amb  { color:#F59E0B; }
+.df-verdict-msg { font-size:13.5px; color:#9CA3AF; line-height:1.6; max-width:340px; margin:0 auto 22px; }
 
 .df-score-big { font-size:60px; font-weight:600; letter-spacing:-.04em; line-height:1; color:#F8F7FF; font-variant-numeric:tabular-nums; }
 .df-score-pct { font-size:24px; color:#6B6883; font-weight:500; margin-left:3px; }
@@ -482,17 +481,23 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
     pct   = score * 100
 
     if score > 0.57:
-        verdict_label = "Contenido sintético"
+        verdict_emoji = "⚠️"
+        verdict_label = "Probablemente FALSO"
+        verdict_msg   = "Se detectaron señales de contenido generado o manipulado por IA."
         fill_c = "#EF4444"
-        card_cls, pill_cls, dot_cls = "df-card-fake", "df-pill-fake", "df-dot-fake"
+        card_cls, title_cls = "df-card-fake", "df-vt-fake"
     elif score <= 0.40:
-        verdict_label = "Contenido auténtico"
+        verdict_emoji = "✅"
+        verdict_label = "Probablemente REAL"
+        verdict_msg   = "No se detectaron señales significativas de síntesis por IA. El contenido parece auténtico."
         fill_c = "#10B981"
-        card_cls, pill_cls, dot_cls = "df-card-real", "df-pill-real", "df-dot-real"
+        card_cls, title_cls = "df-card-real", "df-vt-real"
     else:
-        verdict_label = "Resultado inconcluso"
+        verdict_emoji = "❓"
+        verdict_label = "No determinado"
+        verdict_msg   = "El análisis no pudo determinar con certeza si el contenido es auténtico o sintético. Revisa los detalles forenses."
         fill_c = "#F59E0B"
-        card_cls, pill_cls, dot_cls = "df-card-amb", "df-pill-amb", "df-dot-amb"
+        card_cls, title_cls = "df-card-amb", "df-vt-amb"
 
     thumb      = _TYPE_ICON.get(result.file_type, _ICON_IMAGE)
     type_label = result.file_type.upper()
@@ -550,9 +555,9 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
         '</div>'
 
         f'<div class="df-verdict-wrap">'
-        f'<div class="df-pill {pill_cls}">'
-        f'<span class="df-dot {dot_cls}"></span>'
-        f'{verdict_label}</div>'
+        f'<div class="df-verdict-emoji">{verdict_emoji}</div>'
+        f'<div class="df-verdict-title {title_cls}">{verdict_label}</div>'
+        f'<p class="df-verdict-msg">{verdict_msg}</p>'
         f'<div class="df-score-big">{pct:.1f}<span class="df-score-pct">%</span></div>'
         f'<div class="df-score-sub">probabilidad de contenido sintético</div>'
         f'</div>'
@@ -653,7 +658,7 @@ HEADER_HTML = (
     '<div class="page-hdr-title">Detector de <span class="page-hdr-grad">Deepfakes</span></div>'
     '<div class="page-hdr-sub">Imagen ViT · Audio Wav2Vec2 · Inferencia 100% local</div>'
     '</div>'
-    f'<div class="status-pill"><span class="status-dot"></span> Listo · {device.upper()}</div>'
+    ''
     '</div>'
 )
 
