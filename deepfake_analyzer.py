@@ -195,7 +195,7 @@ class DeepfakeAnalyzer:
 
     def _upload_file(self, path: Path, mime_type: str, poll: bool = False):
         uploaded = self._client.files.upload(
-            path=str(path),
+            file=str(path),
             config=types.UploadFileConfig(
                 mime_type=mime_type,
                 display_name=path.name,
