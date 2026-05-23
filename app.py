@@ -464,22 +464,31 @@ def _format_result(result: dict, file_name: str) -> str:
     thumb      = _TYPE_ICON.get(media_type, _ICON_IMAGE)
     type_label = media_type.upper()
 
-    # Barra de confianza con SVG
-    pct = confidence
-    nx  = max(1.0, min(99.0, float(pct)))
+    # Probabilidad de ser sintético: DEEPFAKE→confidence, REAL→100-confidence, SOSPECHOSO→50
+    if verdict == "DEEPFAKE":
+        synthetic_pct = confidence
+        score_sub = "de probabilidad de ser falso"
+    elif verdict == "REAL":
+        synthetic_pct = 100 - confidence
+        score_sub = "de probabilidad de ser falso"
+    else:
+        synthetic_pct = 50
+        score_sub = "resultado no concluyente"
+
+    nx  = max(1.0, min(99.0, float(synthetic_pct)))
     bar_svg = (
         f'<svg class="df-bar-svg" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none">'
         f'<rect x="0" y="3" width="100" height="6" rx="3" fill="#1B1A26"/>'
-        f'<rect x="0" y="3" width="{pct:.1f}" height="6" rx="3" fill="{fill_c}"/>'
+        f'<rect x="0" y="3" width="{synthetic_pct:.1f}" height="6" rx="3" fill="{fill_c}"/>'
         f'<rect x="{nx:.2f}" y="0" width="2" height="12" rx="1" fill="white" transform="translate(-1,0)"/>'
         f'</svg>'
     )
 
     # Lista de evidencias
-    ev_items = "".join(f'<li class="df-ev-item">{e}</li>' for e in evidence[:6])
+    ev_items = "".join(f'<li class="df-ev-item">{e}</li>' for e in evidence[:3])
     ev_section = (
         '<div class="df-ev-section">'
-        '<div class="df-ev-title">Evidencias del análisis</div>'
+        '<div class="df-ev-title">¿Por qué este resultado?</div>'
         f'<ul class="df-ev-list">{ev_items}</ul>'
         '</div>'
     ) if evidence else ""
@@ -488,7 +497,7 @@ def _format_result(result: dict, file_name: str) -> str:
     def _tr(k: str, v: str) -> str:
         return f'<span class="df-k">{k}</span><span class="df-v">{v}</span>'
 
-    tech = _tr("veredicto", verdict) + _tr("confianza", f"{confidence}%") + _tr("tipo_archivo", media_type) + _tr("modelo", "gemini-2.5-flash")
+    tech = _tr("veredicto_gemini", verdict) + _tr("confianza", f"{confidence}%") + _tr("tipo_archivo", media_type) + _tr("modelo", "gemini-2.5-flash")
 
     return (
         f'<div class="df-card {card_cls}">'
@@ -503,16 +512,15 @@ def _format_result(result: dict, file_name: str) -> str:
         f'<div class="df-verdict-emoji">{verdict_emoji}</div>'
         f'<div class="df-verdict-title {title_cls}">{verdict_label}</div>'
         f'<p class="df-verdict-msg">{verdict_msg}</p>'
-        f'<div class="df-score-big">{pct}<span class="df-score-pct">%</span></div>'
-        f'<div class="df-score-sub">confianza del análisis</div>'
+        f'<div class="df-score-big">{synthetic_pct}<span class="df-score-pct">%</span></div>'
+        f'<div class="df-score-sub">{score_sub}</div>'
         f'</div>'
 
         f'<div class="df-bar-wrap">'
         + bar_svg +
         f'<div class="df-bar-scale">'
-        f'<span class="df-bar-real">0%</span>'
-        f'<span class="df-bar-mid">Confianza</span>'
-        f'<span class="df-bar-fake">100%</span>'
+        f'<span class="df-bar-real">0% — Real</span>'
+        f'<span class="df-bar-fake">100% — Falso</span>'
         f'</div></div>'
 
         + ev_section +

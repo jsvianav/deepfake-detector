@@ -28,52 +28,42 @@ _VIDEO_MIME = {
     ".avi": "video/x-msvideo", ".webm": "video/webm",
 }
 
+_EVIDENCE_RULES = (
+    "\n\nReglas para el campo 'evidence':\n"
+    "- Máximo 3 puntos.\n"
+    "- Cada punto: frase corta, máximo 10 palabras, en español simple y directo.\n"
+    "- Sin jerga técnica. Escribe como si se lo explicaras a alguien sin conocimientos de IA.\n"
+    "- Ejemplos de estilo correcto: 'La piel se ve demasiado lisa y artificial', "
+    "'Los labios no coinciden con lo que dice', 'La voz suena robótica y sin emoción'."
+)
+
+_JSON_FORMAT = (
+    '\nResponde ÚNICAMENTE con un JSON válido sin texto adicional:\n'
+    '{"verdict":"REAL"|"SOSPECHOSO"|"DEEPFAKE","confidence":<0-100>,"evidence":["frase corta 1",...]}\n'
+    "- REAL: parece auténtico\n"
+    "- SOSPECHOSO: hay dudas pero no es concluyente\n"
+    "- DEEPFAKE: claramente falso o generado por IA"
+)
+
 _IMAGE_PROMPT = (
-    "Eres un experto forense en detección de deepfakes y contenido sintético generado por IA. "
-    "Analiza esta imagen y determina si es real o generada/manipulada por IA.\n\n"
-    "Busca específicamente:\n"
-    "- Inconsistencias de iluminación (sombras que no coinciden con fuentes de luz)\n"
-    "- Artefactos en los bordes del rostro (bordes borrosos, halos, fusión incompleta)\n"
-    "- Textura de piel irreal (demasiado uniforme, poros ausentes, aspecto plástico)\n"
-    "- Anomalías oculares (reflejos inconsistentes, pupila deformada)\n"
-    "- Asimetría facial exagerada o simetría perfecta antinatural\n"
-    "- Cabello, ropa o accesorios con detalles irreales o fusionados con el fondo\n"
-    "- Artefactos de compresión o patrones repetitivos\n\n"
-    'Responde ÚNICAMENTE con un JSON válido sin texto adicional:\n'
-    '{"verdict":"REAL"|"SOSPECHOSO"|"DEEPFAKE","confidence":<0-100>,"evidence":["evidencia1",...]}\n\n'
-    "- REAL: sin señales claras de manipulación\n"
-    "- SOSPECHOSO: anomalías presentes pero no concluyente\n"
-    "- DEEPFAKE: claramente generado o manipulado por IA"
+    "Analiza esta imagen y determina si es real o fue creada/modificada por IA.\n\n"
+    "Revisa: iluminación inconsistente, bordes del rostro borrosos, "
+    "piel demasiado uniforme, ojos con reflejos raros, cabello o fondo con detalles extraños."
+    + _EVIDENCE_RULES + _JSON_FORMAT
 )
 
 _VIDEO_PROMPT = (
-    "Eres un experto forense en detección de deepfakes y contenido sintético generado por IA. "
-    "Analiza este video y determina si es real o generado/manipulado por IA.\n\n"
-    "Busca específicamente:\n"
-    "- Sincronización labial (¿los labios coinciden exactamente con el audio?)\n"
-    "- Consistencia entre fotogramas (saltos, temblores, incoherencias entre frames)\n"
-    "- Artefactos en movimiento (bordes borrosos cuando el sujeto se mueve)\n"
-    "- Parpadeo antinatural (frecuencia, duración o ritmo mecánico)\n"
-    "- Inconsistencias de iluminación entre frames consecutivos\n"
-    "- Expresiones faciales robóticas o transiciones poco naturales\n"
-    "- Movimiento del cabello o ropa inconsistente con la física real\n\n"
-    'Responde ÚNICAMENTE con un JSON válido sin texto adicional:\n'
-    '{"verdict":"REAL"|"SOSPECHOSO"|"DEEPFAKE","confidence":<0-100>,"evidence":["evidencia1",...]}'
+    "Analiza este video y determina si es real o fue creado/manipulado por IA.\n\n"
+    "Revisa: si los labios coinciden con lo que se dice, movimientos bruscos entre fotogramas, "
+    "parpadeo extraño, expresiones faciales poco naturales, iluminación que cambia sin razón."
+    + _EVIDENCE_RULES + _JSON_FORMAT
 )
 
 _AUDIO_PROMPT = (
-    "Eres un experto forense en detección de audio sintético generado por IA y voice cloning. "
-    "Analiza este audio y determina si la voz es real o generada/clonada por IA.\n\n"
-    "Busca específicamente:\n"
-    "- Artefactos de síntesis de voz (clics, pop, discontinuidades, glitches)\n"
-    "- Respiración antinatural (ausente, demasiado regular, o en momentos incorrectos)\n"
-    "- Entonación robótica (monotonía, transiciones de tono mecánicas)\n"
-    "- Prosodia mecánica (ritmo demasiado uniforme, pausas no naturales)\n"
-    "- Ausencia de variaciones naturales de la voz humana\n"
-    "- Ruido de fondo inconsistente o artificialmente limpio\n"
-    "- Consonantes o vocales con calidad irreal\n\n"
-    'Responde ÚNICAMENTE con un JSON válido sin texto adicional:\n'
-    '{"verdict":"REAL"|"SOSPECHOSO"|"DEEPFAKE","confidence":<0-100>,"evidence":["evidencia1",...]}'
+    "Analiza este audio y determina si la voz es real o fue generada/clonada por IA.\n\n"
+    "Revisa: si suena robótica o monótona, si falta respiración natural, "
+    "pausas en lugares raros, calidad demasiado perfecta o artificial."
+    + _EVIDENCE_RULES + _JSON_FORMAT
 )
 
 
