@@ -1,0 +1,554 @@
+<!--
+  ╔══════════════════════════════════════════════════════╗
+  ║   DEEPFAKE DETECTOR WIDGET                           ║
+  ║   Pega este bloque en la sección de tu página.       ║
+  ║                                                      ║
+  ║   PASO 1: Cambia BACKEND_URL por la URL de tu        ║
+  ║           app en Railway (o HF Spaces).              ║
+  ╚══════════════════════════════════════════════════════╝
+-->
+
+<!-- ── Configuración ── -->
+<script>
+  const DF_BACKEND_URL = "https://TU-APP.up.railway.app";
+</script>
+
+<!-- ── Fuentes ── -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- ── Estilos ── -->
+<style>
+  /* Variables — edita para que coincida con tu página */
+  #df-widget {
+    --df-bg:        #0D0C14;
+    --df-card:      #13111F;
+    --df-border:    rgba(124,58,237,.2);
+    --df-purple:    #7C3AED;
+    --df-purple-lt: #A78BFA;
+    --df-green:     #10B981;
+    --df-red:       #EF4444;
+    --df-amber:     #F59E0B;
+    --df-text:      #F8F7FF;
+    --df-muted:     #6B6883;
+    --df-radius:    16px;
+    --df-font:      'Poppins', system-ui, sans-serif;
+  }
+
+  /* Reset local */
+  #df-widget *, #df-widget *::before, #df-widget *::after {
+    box-sizing: border-box; margin: 0; padding: 0;
+  }
+
+  #df-widget {
+    background: var(--df-bg);
+    border: 1px solid var(--df-border);
+    border-radius: var(--df-radius);
+    font-family: var(--df-font);
+    color: var(--df-text);
+    padding: 32px 28px;
+    max-width: 680px;
+    margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Header */
+  .df-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .df-header-icon {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg,#7C3AED,#5B21B6);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 20px rgba(124,58,237,.45);
+    flex-shrink: 0;
+  }
+  .df-header-icon svg { width: 18px; height: 18px; }
+  .df-header-title {
+    font-size: 17px; font-weight: 700; letter-spacing: -.02em;
+  }
+  .df-header-grad {
+    background: linear-gradient(135deg,#C4B5FD,#A78BFA);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .df-header-sub {
+    font-size: 11.5px; color: var(--df-muted); margin-top: 2px;
+  }
+
+  /* Upload zone */
+  .df-dropzone {
+    border: 1.5px dashed rgba(124,58,237,.4);
+    border-radius: 12px;
+    background: rgba(124,58,237,.03);
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s ease;
+    position: relative;
+  }
+  .df-dropzone:hover, .df-dropzone.drag-over {
+    border-color: rgba(124,58,237,.75);
+    background: rgba(124,58,237,.07);
+    box-shadow: 0 0 24px rgba(124,58,237,.12);
+  }
+  .df-dropzone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    width: 100%; height: 100%;
+  }
+  .df-drop-icon {
+    width: 44px; height: 44px; margin: 0 auto 14px;
+    background: rgba(124,58,237,.1);
+    border: 1px solid rgba(124,58,237,.25);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .df-drop-icon svg { color: var(--df-purple-lt); }
+  .df-drop-text { font-size: 14px; color: var(--df-text); font-weight: 500; margin-bottom: 5px; }
+  .df-drop-sub  { font-size: 12px; color: var(--df-muted); }
+  .df-formats   { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+  .df-fmt-chip  {
+    font-size: 10px; font-weight: 600; padding: 3px 8px;
+    border-radius: 5px; border: 1px solid rgba(124,58,237,.2);
+    background: rgba(124,58,237,.08); color: var(--df-purple-lt);
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+  .df-selected-file {
+    margin-top: 14px; font-size: 12.5px; color: #A78BFA;
+    font-weight: 500; display: none;
+  }
+  .df-selected-file::before { content: "📎 "; }
+
+  /* Botón analizar */
+  .df-btn-analyze {
+    width: 100%; margin-top: 16px;
+    background: var(--df-purple);
+    color: #fff; border: none; border-radius: 12px;
+    font-family: var(--df-font); font-size: 14px; font-weight: 600;
+    padding: 14px; cursor: pointer;
+    box-shadow: 0 8px 22px -8px rgba(124,58,237,.6);
+    transition: all .18s ease;
+  }
+  .df-btn-analyze:hover:not(:disabled) {
+    background: #8B45F2;
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px -8px rgba(124,58,237,.7);
+  }
+  .df-btn-analyze:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+  /* Loading */
+  .df-loading {
+    display: none;
+    text-align: center;
+    padding: 48px 20px;
+  }
+  .df-spinner {
+    width: 44px; height: 44px; margin: 0 auto 18px;
+    border: 3px solid rgba(124,58,237,.15);
+    border-top-color: var(--df-purple);
+    border-radius: 50%;
+    animation: df-spin .8s linear infinite;
+  }
+  @keyframes df-spin { to { transform: rotate(360deg); } }
+  .df-loading-text { font-size: 14px; color: var(--df-muted); }
+  .df-loading-sub  { font-size: 12px; color: rgba(107,104,131,.7); margin-top: 5px; }
+
+  /* Result card */
+  .df-result { display: none; animation: df-fadeUp .4s ease; }
+  @keyframes df-fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+  .df-result-card {
+    border: 1px solid var(--df-border);
+    border-radius: 14px;
+    background: var(--df-card);
+    overflow: hidden;
+  }
+  .df-result-card.is-fake  { border-color: rgba(239,68,68,.3); box-shadow: 0 0 32px -8px rgba(239,68,68,.18); }
+  .df-result-card.is-real  { border-color: rgba(16,185,129,.3); box-shadow: 0 0 32px -8px rgba(16,185,129,.15); }
+  .df-result-card.is-ambig { border-color: rgba(245,158,11,.3); box-shadow: 0 0 32px -8px rgba(245,158,11,.12); }
+
+  .df-result-hdr {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .df-result-hdr-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.2);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .df-result-hdr-icon svg { width: 14px; height: 14px; color: var(--df-purple-lt); }
+  .df-result-filename {
+    flex: 1; font-size: 12px; font-family: 'JetBrains Mono', 'Courier New', monospace;
+    color: var(--df-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .df-type-chip {
+    font-size: 10px; font-weight: 600; padding: 3px 9px;
+    border-radius: 6px; background: rgba(124,58,237,.1);
+    border: 1px solid rgba(124,58,237,.2); color: var(--df-purple-lt);
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+
+  .df-verdict-body { padding: 28px 22px 22px; text-align: center; }
+  .df-verdict-emoji { font-size: 40px; line-height: 1; margin-bottom: 10px; }
+  .df-verdict-label {
+    font-size: 22px; font-weight: 700; letter-spacing: -.025em; margin-bottom: 10px;
+  }
+  .df-verdict-label.is-fake  { color: var(--df-red); }
+  .df-verdict-label.is-real  { color: var(--df-green); }
+  .df-verdict-label.is-ambig { color: var(--df-amber); }
+  .df-verdict-msg { font-size: 13.5px; color: #9CA3AF; line-height: 1.6; max-width: 360px; margin: 0 auto 22px; }
+  .df-score-num {
+    font-size: 58px; font-weight: 700; letter-spacing: -.04em;
+    line-height: 1; color: var(--df-text); font-variant-numeric: tabular-nums;
+  }
+  .df-score-pct { font-size: 22px; color: var(--df-muted); font-weight: 500; margin-left: 2px; }
+  .df-score-sub { font-size: 12px; color: var(--df-muted); margin-top: 7px; }
+
+  /* Bar */
+  .df-bar-wrap { padding: 0 22px 20px; }
+  .df-bar-track {
+    height: 8px; border-radius: 4px; background: #1B1A26; overflow: hidden; position: relative;
+  }
+  .df-bar-fill {
+    height: 100%; border-radius: 4px;
+    transition: width .6s cubic-bezier(.2,.7,.2,1);
+  }
+  .df-bar-labels {
+    display: flex; justify-content: space-between;
+    margin-top: 8px; font-size: 10.5px; letter-spacing: .03em;
+  }
+  .df-bar-lbl-real { color: #6EE7B7; }
+  .df-bar-lbl-fake { color: #FCA5A5; }
+
+  /* Evidence */
+  .df-evidence {
+    border-top: 1px solid rgba(255,255,255,.06);
+    padding: 14px 22px 18px;
+  }
+  .df-evidence-title {
+    font-size: 10px; font-weight: 600; color: var(--df-muted);
+    text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px;
+  }
+  .df-evidence-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .df-evidence-item {
+    font-size: 13px; color: #B8B5C8; line-height: 1.5;
+    padding-left: 16px; position: relative;
+  }
+  .df-evidence-item::before {
+    content: "·"; position: absolute; left: 4px;
+    color: var(--df-purple-lt); font-weight: 700; font-size: 16px; line-height: 1.1;
+  }
+
+  /* Reset button */
+  .df-btn-reset {
+    width: 100%; margin-top: 16px;
+    background: transparent;
+    border: 1px solid rgba(124,58,237,.25);
+    color: var(--df-muted); border-radius: 12px;
+    font-family: var(--df-font); font-size: 13.5px; font-weight: 500;
+    padding: 12px; cursor: pointer; transition: all .18s ease;
+  }
+  .df-btn-reset:hover {
+    border-color: rgba(124,58,237,.6); color: var(--df-purple-lt);
+    background: rgba(124,58,237,.05);
+  }
+
+  /* Error */
+  .df-error {
+    display: none;
+    background: rgba(239,68,68,.07);
+    border: 1px solid rgba(239,68,68,.25);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px; color: #FCA5A5;
+    margin-top: 16px;
+    line-height: 1.5;
+  }
+</style>
+
+<!-- ── HTML del widget ── -->
+<div id="df-widget">
+
+  <!-- Cabecera -->
+  <div class="df-header">
+    <div class="df-header-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/>
+      </svg>
+    </div>
+    <div>
+      <div class="df-header-title">
+        Detector de <span class="df-header-grad">Deepfakes</span>
+      </div>
+      <div class="df-header-sub">Powered by Gemini 2.5 Flash · Análisis multimodal</div>
+    </div>
+  </div>
+
+  <!-- Estado: subida de archivo -->
+  <div id="df-state-upload">
+    <div class="df-dropzone" id="df-dropzone">
+      <input type="file" id="df-file-input"
+             accept=".mp4,.mov,.avi,.webm,.mp3,.wav,.m4a,.ogg,.jpg,.jpeg,.png">
+      <div class="df-drop-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div class="df-drop-text">Arrastra tu archivo aquí o haz clic</div>
+      <div class="df-drop-sub">Video, audio o imagen · Máx. 100 MB</div>
+      <div class="df-formats">
+        <span class="df-fmt-chip">mp4</span>
+        <span class="df-fmt-chip">mov</span>
+        <span class="df-fmt-chip">mp3</span>
+        <span class="df-fmt-chip">wav</span>
+        <span class="df-fmt-chip">jpg</span>
+        <span class="df-fmt-chip">png</span>
+      </div>
+    </div>
+    <div class="df-selected-file" id="df-selected-name"></div>
+    <div class="df-error" id="df-upload-error"></div>
+    <button class="df-btn-analyze" id="df-btn-analyze" disabled>Analizar</button>
+  </div>
+
+  <!-- Estado: analizando -->
+  <div class="df-loading" id="df-state-loading">
+    <div class="df-spinner"></div>
+    <div class="df-loading-text">Analizando con Gemini 2.5 Flash…</div>
+    <div class="df-loading-sub" id="df-loading-hint">Esto puede tardar 10–60 s según el archivo</div>
+  </div>
+
+  <!-- Estado: resultado -->
+  <div class="df-result" id="df-state-result">
+    <div class="df-result-card" id="df-result-card">
+      <div class="df-result-hdr">
+        <div class="df-result-hdr-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </div>
+        <div class="df-result-filename" id="df-result-filename">archivo.mp4</div>
+        <span class="df-type-chip" id="df-result-type">VIDEO</span>
+      </div>
+
+      <div class="df-verdict-body">
+        <div class="df-verdict-emoji" id="df-verdict-emoji">✅</div>
+        <div class="df-verdict-label" id="df-verdict-label">Probablemente REAL</div>
+        <p class="df-verdict-msg" id="df-verdict-msg">No se detectaron señales de manipulación.</p>
+        <div class="df-score-num" id="df-score-num">
+          20<span class="df-score-pct">%</span>
+        </div>
+        <div class="df-score-sub" id="df-score-sub">de probabilidad de ser falso</div>
+      </div>
+
+      <div class="df-bar-wrap">
+        <div class="df-bar-track">
+          <div class="df-bar-fill" id="df-bar-fill" style="width:0%;background:#10B981"></div>
+        </div>
+        <div class="df-bar-labels">
+          <span class="df-bar-lbl-real">0% — Real</span>
+          <span class="df-bar-lbl-fake">100% — Falso</span>
+        </div>
+      </div>
+
+      <div class="df-evidence" id="df-evidence-section">
+        <div class="df-evidence-title">¿Por qué este resultado?</div>
+        <ul class="df-evidence-list" id="df-evidence-list"></ul>
+      </div>
+    </div>
+
+    <button class="df-btn-reset" id="df-btn-reset">Analizar otro archivo</button>
+  </div>
+
+</div>
+
+<!-- ── JavaScript ── -->
+<script>
+(function () {
+  // ── Constantes ──────────────────────────────────────────────────
+  const BACKEND = (typeof DF_BACKEND_URL !== "undefined" ? DF_BACKEND_URL : "").replace(/\/$/, "");
+  const MAX_MB  = 100;
+
+  // ── Elementos ───────────────────────────────────────────────────
+  const $upload    = document.getElementById("df-state-upload");
+  const $loading   = document.getElementById("df-state-loading");
+  const $result    = document.getElementById("df-state-result");
+  const $dropzone  = document.getElementById("df-dropzone");
+  const $fileInput = document.getElementById("df-file-input");
+  const $selName   = document.getElementById("df-selected-name");
+  const $upErr     = document.getElementById("df-upload-error");
+  const $btnAnal   = document.getElementById("df-btn-analyze");
+  const $loadHint  = document.getElementById("df-loading-hint");
+  const $btnReset  = document.getElementById("df-btn-reset");
+
+  const $card      = document.getElementById("df-result-card");
+  const $fname     = document.getElementById("df-result-filename");
+  const $rtype     = document.getElementById("df-result-type");
+  const $emoji     = document.getElementById("df-verdict-emoji");
+  const $label     = document.getElementById("df-verdict-label");
+  const $msg       = document.getElementById("df-verdict-msg");
+  const $scoreNum  = document.getElementById("df-score-num");
+  const $scoreSub  = document.getElementById("df-score-sub");
+  const $barFill   = document.getElementById("df-bar-fill");
+  const $evList    = document.getElementById("df-evidence-list");
+  const $evSection = document.getElementById("df-evidence-section");
+
+  let selectedFile = null;
+
+  // ── Drag & drop ─────────────────────────────────────────────────
+  $dropzone.addEventListener("dragover",  e => { e.preventDefault(); $dropzone.classList.add("drag-over"); });
+  $dropzone.addEventListener("dragleave", () => $dropzone.classList.remove("drag-over"));
+  $dropzone.addEventListener("drop", e => {
+    e.preventDefault();
+    $dropzone.classList.remove("drag-over");
+    const f = e.dataTransfer.files[0];
+    if (f) selectFile(f);
+  });
+  $fileInput.addEventListener("change", () => {
+    if ($fileInput.files[0]) selectFile($fileInput.files[0]);
+  });
+
+  function selectFile(f) {
+    hideError();
+    const mb = f.size / 1024 / 1024;
+    if (mb > MAX_MB) {
+      showError(`El archivo es demasiado grande (${mb.toFixed(1)} MB). Máximo: ${MAX_MB} MB.`);
+      return;
+    }
+    selectedFile = f;
+    $selName.textContent = f.name;
+    $selName.style.display = "block";
+    $btnAnal.disabled = false;
+  }
+
+  // ── Analizar ────────────────────────────────────────────────────
+  $btnAnal.addEventListener("click", analyze);
+
+  async function analyze() {
+    if (!selectedFile) return;
+    if (!BACKEND) {
+      showError("Error de configuración: establece DF_BACKEND_URL con la URL de tu backend.");
+      return;
+    }
+    showState("loading");
+
+    // Hint diferente para video (suele tardar más)
+    const isVideo = /\.(mp4|mov|avi|webm)$/i.test(selectedFile.name);
+    $loadHint.textContent = isVideo
+      ? "Los videos pueden tardar hasta 60 s — Gemini los procesa en la nube"
+      : "Esto puede tardar 10–20 s";
+
+    const form = new FormData();
+    form.append("file", selectedFile, selectedFile.name);
+
+    try {
+      const res = await fetch(`${BACKEND}/analyze`, { method: "POST", body: form });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`Error del servidor (${res.status}): ${txt.slice(0, 200)}`);
+      }
+      const data = await res.json();
+      renderResult(data, selectedFile.name);
+      showState("result");
+    } catch (err) {
+      showState("upload");
+      showError(`No se pudo completar el análisis: ${err.message}`);
+    }
+  }
+
+  // ── Renderizar resultado ─────────────────────────────────────────
+  function renderResult(data, fileName) {
+    const verdict    = (data.verdict || "SOSPECHOSO").toUpperCase();
+    const confidence = Math.max(0, Math.min(100, data.confidence ?? 50));
+    const evidence   = Array.isArray(data.evidence) ? data.evidence.slice(0, 3) : [];
+    const mediaType  = (data.media_type || "image").toUpperCase();
+
+    // Probabilidad de ser falso
+    let synPct, emoji, labelText, msgText, colorClass, barColor, scoreSub;
+    if (verdict === "DEEPFAKE") {
+      synPct = confidence;
+      emoji  = "⚠️";
+      labelText  = "Probablemente FALSO";
+      msgText    = "Se detectaron señales de contenido generado o manipulado por IA.";
+      colorClass = "is-fake"; barColor = "#EF4444";
+      scoreSub   = "de probabilidad de ser falso";
+    } else if (verdict === "REAL") {
+      synPct = 100 - confidence;
+      emoji  = "✅";
+      labelText  = "Probablemente REAL";
+      msgText    = "No se detectaron señales significativas de síntesis por IA.";
+      colorClass = "is-real"; barColor = "#10B981";
+      scoreSub   = "de probabilidad de ser falso";
+    } else {
+      synPct = 50;
+      emoji  = "❓";
+      labelText  = "Resultado Sospechoso";
+      msgText    = "Se detectaron algunas anomalías pero el resultado no es concluyente.";
+      colorClass = "is-ambig"; barColor = "#F59E0B";
+      scoreSub   = "resultado no concluyente";
+    }
+
+    // Aplicar clases y valores
+    $card.className = `df-result-card ${colorClass}`;
+    $fname.textContent = fileName;
+    $rtype.textContent = mediaType;
+    $emoji.textContent = emoji;
+    $label.textContent = labelText;
+    $label.className   = `df-verdict-label ${colorClass}`;
+    $msg.textContent   = msgText;
+    $scoreNum.innerHTML = `${synPct}<span class="df-score-pct">%</span>`;
+    $scoreSub.textContent = scoreSub;
+
+    // Barra (pequeño delay para que la animación se vea)
+    $barFill.style.width      = "0%";
+    $barFill.style.background = barColor;
+    setTimeout(() => { $barFill.style.width = synPct + "%"; }, 80);
+
+    // Evidencias
+    if (evidence.length) {
+      $evList.innerHTML = evidence.map(e => `<li class="df-evidence-item">${e}</li>`).join("");
+      $evSection.style.display = "block";
+    } else {
+      $evSection.style.display = "none";
+    }
+  }
+
+  // ── Reset ────────────────────────────────────────────────────────
+  $btnReset.addEventListener("click", () => {
+    selectedFile = null;
+    $fileInput.value = "";
+    $selName.style.display = "none";
+    $selName.textContent = "";
+    $btnAnal.disabled = true;
+    hideError();
+    showState("upload");
+  });
+
+  // ── Utilidades ───────────────────────────────────────────────────
+  function showState(state) {
+    $upload.style.display  = state === "upload"   ? "block" : "none";
+    $loading.style.display = state === "loading"  ? "block" : "none";
+    $result.style.display  = state === "result"   ? "block" : "none";
+  }
+  function showError(msg) {
+    $upErr.textContent    = "⚠️ " + msg;
+    $upErr.style.display  = "block";
+  }
+  function hideError() {
+    $upErr.style.display = "none";
+    $upErr.textContent   = "";
+  }
+
+})();
+</script>

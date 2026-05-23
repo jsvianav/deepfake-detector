@@ -710,7 +710,48 @@ with gr.Blocks(
     ).then(fn=None, js=_scroll_js)
 
 # ---------------------------------------------------------------------------
-# Punto de entrada
+# REST API + CORS  (para embeber en páginas externas)
+# ---------------------------------------------------------------------------
+import tempfile
+from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+_api = FastAPI()
+_api.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
+
+@_api.post("/analyze")
+async def api_analyze(file: UploadFile = File(...)):
+    """Recibe un archivo multimedia y devuelve el resultado de Gemini como JSON."""
+    suffix = Path(file.filename or "upload").suffix.lower() or ".tmp"
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(await file.read())
+            tmp_path = tmp.name
+        result = _analyzer.analyze(tmp_path)
+        result.pop("raw_response", None)
+        return JSONResponse(result)
+    except Exception as exc:
+        logger.exception("Error en /analyze")
+        return JSONResponse(
+            {"error": str(exc), "verdict": "SOSPECHOSO", "confidence": 0, "evidence": [str(exc)]},
+            status_code=500,
+        )
+    finally:
+        if tmp_path:
+            Path(tmp_path).unlink(missing_ok=True)
+
+# app = FastAPI + Gradio montado en "/" — usado por uvicorn en Railway
+app = gr.mount_gradio_app(_api, demo, path="/")
+
+# ---------------------------------------------------------------------------
+# Punto de entrada (HF Spaces y desarrollo local usan demo.launch())
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     demo.launch(
