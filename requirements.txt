@@ -1,20 +1,10 @@
-# Core ML
-torch>=2.5.0
-torchvision>=0.20.0
-torchaudio>=2.5.0
-transformers>=4.44.2
-accelerate>=0.33.0
-
 # Interface
 gradio>=5.9.1
 
-# Media processing
-ffmpeg-python==0.2.0
-opencv-python>=4.10.0.84
-librosa>=0.10.2
-soundfile>=0.12.1
-Pillow>=10.4.0
+# Gemini AI
+google-genai>=1.0.0
+python-dotenv>=1.0.0
 
-# Utilities
+# Image / media utilities
+Pillow>=10.4.0
 numpy>=1.26.4
-scipy>=1.13.1

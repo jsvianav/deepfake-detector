@@ -1,27 +1,15 @@
 """Detector de Deepfakes — Interfaz Gradio con tema oscuro premium.
 
-Carga ambos modelos una vez al iniciar y sirve inferencia a través de una
-interfaz Blocks que acepta archivos multimedia por arrastrar y soltar.
+Usa Gemini 2.5 Flash para analizar imágenes, audio y video en busca de
+contenido sintético o manipulado por IA.
 """
 
 import logging
 import os
-import sys
 from pathlib import Path
-from typing import List, Optional, Tuple
 
-# huggingface_hub>=0.26 removed HfFolder; gradio[oauth] still imports it at load time.
-# Inject a stub BEFORE importing gradio so the import chain succeeds.
-import huggingface_hub as _hfhub
-if not hasattr(_hfhub, "HfFolder"):
-    class _HfFolder:
-        @staticmethod
-        def get_token(): return None
-        @staticmethod
-        def save_token(token): pass
-        @staticmethod
-        def delete_token(): pass
-    _hfhub.HfFolder = _HfFolder
+from dotenv import load_dotenv
+load_dotenv()
 
 import gradio as gr
 
@@ -36,16 +24,10 @@ def _patched_schema_to_py(schema, defs=None):
     return _orig_schema_to_py(schema, defs)
 _gc_utils._json_schema_to_python_type = _patched_schema_to_py
 
-import torch
-
-sys.path.insert(0, str(Path(__file__).parent))
-
 # Detectar si corremos en Hugging Face Spaces
 _IS_SPACES = os.environ.get("SPACE_ID") is not None
 
-from detectors.video_detector import ImageDeepfakeDetector
-from detectors.audio_detector import AudioDeepfakeDetector
-from detectors.orchestrator import Orchestrator, DetectionResult
+from deepfake_analyzer import DeepfakeAnalyzer
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -62,20 +44,9 @@ _ROBOT_SRC = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQg
 # ---------------------------------------------------------------------------
 # Carga de modelos (una sola vez al iniciar)
 # ---------------------------------------------------------------------------
-device = "cuda" if torch.cuda.is_available() else "cpu"
-if device == "cpu":
-    logger.warning("Sin GPU detectada — ejecutando en CPU. La inferencia será más lenta.")
-
-logger.info("=== Cargando modelos (puede tomar un minuto la primera vez) ===")
-_image_detector = ImageDeepfakeDetector(device=device)
-_audio_detector = AudioDeepfakeDetector(device=device)
-
-# En Spaces de CPU gratuito, reducir frames para que el análisis sea más rápido
-_max_frames = 8 if (_IS_SPACES and device == "cpu") else 30
-logger.info("Frames por video: %d (%s)", _max_frames, "Spaces CPU" if _max_frames == 8 else "completo")
-
-_orchestrator = Orchestrator(_image_detector, _audio_detector, frame_fps=1.0, max_frames=_max_frames)
-logger.info("=== Modelos listos ===")
+logger.info("=== Inicializando DeepfakeAnalyzer (Gemini 2.5 Flash) ===")
+_analyzer = DeepfakeAnalyzer()
+logger.info("=== Analyzer listo ===")
 
 # ---------------------------------------------------------------------------
 # Extensiones aceptadas
@@ -428,6 +399,13 @@ footer { display:none !important; }
 .df-fmt-type { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:600; color:#A78BFA; text-transform:uppercase; letter-spacing:.05em; }
 .df-chips-row { display:flex; flex-wrap:wrap; gap:5px; }
 .df-mt12 { margin-top:12px; }
+
+/* ── Sección de evidencias ────────────────────────────────── */
+.df-ev-section { border-top:1px solid rgba(255,255,255,.06); padding:14px 22px 16px; }
+.df-ev-title { font-size:10px; font-weight:600; color:#6B6883; text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px; }
+.df-ev-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.df-ev-item { font-size:12.5px; color:#B8B5C8; line-height:1.5; padding-left:16px; position:relative; }
+.df-ev-item::before { content:"·"; position:absolute; left:4px; color:#A78BFA; font-weight:700; font-size:16px; line-height:1.2; }
 """
 
 # ---------------------------------------------------------------------------
@@ -439,38 +417,15 @@ def _chip(text: str, kind: str = "") -> str:
     return f'<span class="df-chip{extra}">{text}</span>'
 
 
-def _mini_bar(score_val: Optional[float], label: str, icon: str) -> str:
-    lbl = f'<div class="df-mini-lbl"><span class="df-mini-icon">{icon}</span>{label}</div>'
-    if score_val is None:
-        return (
-            lbl
-            + '<div class="df-mini-num df-mini-na">—</div>'
-            + '<svg class="df-bar-svg" width="100%" height="3" viewBox="0 0 100 3" preserveAspectRatio="none">'
-            + '<rect x="0" y="0" width="100" height="3" rx="1.5" fill="#1B1A26"/>'
-            + '</svg>'
-            + '<div class="df-mini-meta">sin datos</div>'
-        )
-    p = score_val * 100
-    sc_cls = "df-mini-fake" if score_val > 0.5 else "df-mini-real"
-    fill   = "#EF4444" if score_val > 0.5 else "#10B981"
-    return (
-        lbl
-        + f'<div class="df-mini-num {sc_cls}">{p:.1f}<span class="df-mini-pct">%</span></div>'
-        + f'<svg class="df-bar-svg" width="100%" height="3" viewBox="0 0 100 3" preserveAspectRatio="none">'
-        + f'<rect x="0" y="0" width="100" height="3" rx="1.5" fill="#1B1A26"/>'
-        + f'<rect x="0" y="0" width="{p:.2f}" height="3" rx="1.5" fill="{fill}"/>'
-        + '</svg>'
-    )
-
 
 # ---------------------------------------------------------------------------
 # Renderizador de tarjeta de resultado
 # ---------------------------------------------------------------------------
 
-def _format_result(result: DetectionResult, file_name: str) -> str:
-    """Genera una tarjeta HTML animada con el resultado de detección."""
+def _format_result(result: dict, file_name: str) -> str:
+    """Genera una tarjeta HTML animada con el resultado de Gemini."""
 
-    if result.error:
+    if result.get("error") and not result.get("evidence"):
         return (
             '<div class="df-card df-card-err">'
             '<div class="df-hdr">'
@@ -478,78 +433,63 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
             f'<div class="df-hdr-name">{file_name}</div>'
             + _chip("ERROR") +
             '</div>'
-            f'<div class="df-err-body">{result.error}</div>'
+            f'<div class="df-err-body">{result["error"]}</div>'
             '</div>'
         )
 
-    score = result.fused_score
-    pct   = score * 100
+    verdict    = result.get("verdict", "SOSPECHOSO")
+    confidence = result.get("confidence", 50)
+    evidence   = result.get("evidence", [])
+    media_type = result.get("media_type", "image")
 
-    if score > 0.57:
+    if verdict == "DEEPFAKE":
         verdict_emoji = "⚠️"
         verdict_label = "Probablemente FALSO"
         verdict_msg   = "Se detectaron señales de contenido generado o manipulado por IA."
         fill_c = "#EF4444"
         card_cls, title_cls = "df-card-fake", "df-vt-fake"
-    elif score <= 0.40:
+    elif verdict == "REAL":
         verdict_emoji = "✅"
         verdict_label = "Probablemente REAL"
-        verdict_msg   = "No se detectaron señales significativas de síntesis por IA. El contenido parece auténtico."
+        verdict_msg   = "No se detectaron señales significativas de síntesis por IA."
         fill_c = "#10B981"
         card_cls, title_cls = "df-card-real", "df-vt-real"
     else:
         verdict_emoji = "❓"
-        verdict_label = "No determinado"
-        verdict_msg   = "El análisis no pudo determinar con certeza si el contenido es auténtico o sintético. Revisa los detalles forenses."
+        verdict_label = "Resultado Sospechoso"
+        verdict_msg   = "Se detectaron algunas anomalías pero el resultado no es concluyente."
         fill_c = "#F59E0B"
         card_cls, title_cls = "df-card-amb", "df-vt-amb"
 
-    thumb      = _TYPE_ICON.get(result.file_type, _ICON_IMAGE)
-    type_label = result.file_type.upper()
+    thumb      = _TYPE_ICON.get(media_type, _ICON_IMAGE)
+    type_label = media_type.upper()
 
-    # ── Desglose (solo video) ──────────────────────────────────────────
-    breakdown = ""
-    if result.file_type == "video":
-        audio_score = result.audio_score if result.had_audio else None
-        audio_meta  = "wav2vec2 · 16 kHz" if result.had_audio else "sin pista de audio"
-        breakdown = (
-            '<div class="df-breakdown">'
-            '<div class="df-bd-left">'
-            + _mini_bar(result.video_score, "Visual", _ICON_VIDEO)
-            + f'<div class="df-mini-meta">{result.frame_count} fotogramas · 1 fps</div>'
-            + '</div>'
-            '<div class="df-bd-right">'
-            + _mini_bar(audio_score, "Audio", _ICON_AUDIO)
-            + f'<div class="df-mini-meta">{audio_meta}</div>'
-            + '</div>'
-            '</div>'
-        )
-
-    # ── Filas de detalles forenses ─────────────────────────────────────
-    def _tr(k: str, v: str) -> str:
-        return f'<span class="df-k">{k}</span><span class="df-v">{v}</span>'
-
-    tech = _tr("puntaje_fusionado", f"{result.fused_score:.4f}")
-    if result.video_score is not None:
-        tech += _tr("puntaje_video", f"{result.video_score:.4f}")
-    if result.audio_score is not None:
-        tech += _tr("puntaje_audio", f"{result.audio_score:.4f}")
-    tech += _tr("fotogramas",   str(result.frame_count))
-    tech += _tr("tiene_audio",  "sí" if result.had_audio else "no")
-    tech += _tr("tipo_archivo", result.file_type)
-    tech += _tr("dispositivo",  device)
-
-    # Barra principal con SVG (los atributos SVG no son sanitizados)
-    nx = max(1.0, min(99.0, pct))
+    # Barra de confianza con SVG
+    pct = confidence
+    nx  = max(1.0, min(99.0, float(pct)))
     bar_svg = (
         f'<svg class="df-bar-svg" width="100%" height="12" viewBox="0 0 100 12" preserveAspectRatio="none">'
         f'<rect x="0" y="3" width="100" height="6" rx="3" fill="#1B1A26"/>'
-        f'<rect x="0" y="3" width="{pct:.2f}" height="6" rx="3" fill="{fill_c}"/>'
+        f'<rect x="0" y="3" width="{pct:.1f}" height="6" rx="3" fill="{fill_c}"/>'
         f'<rect x="{nx:.2f}" y="0" width="2" height="12" rx="1" fill="white" transform="translate(-1,0)"/>'
         f'</svg>'
     )
 
-    # ── Ensamblado ─────────────────────────────────────────────────────
+    # Lista de evidencias
+    ev_items = "".join(f'<li class="df-ev-item">{e}</li>' for e in evidence[:6])
+    ev_section = (
+        '<div class="df-ev-section">'
+        '<div class="df-ev-title">Evidencias del análisis</div>'
+        f'<ul class="df-ev-list">{ev_items}</ul>'
+        '</div>'
+    ) if evidence else ""
+
+    # Detalles técnicos colapsables
+    def _tr(k: str, v: str) -> str:
+        return f'<span class="df-k">{k}</span><span class="df-v">{v}</span>'
+
+    tech = _tr("veredicto", verdict) + _tr("confianza", f"{confidence}%") + _tr("tipo_archivo", media_type) + _tr("modelo", "gemini-2.5-flash")
+
     return (
         f'<div class="df-card {card_cls}">'
 
@@ -563,23 +503,23 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
         f'<div class="df-verdict-emoji">{verdict_emoji}</div>'
         f'<div class="df-verdict-title {title_cls}">{verdict_label}</div>'
         f'<p class="df-verdict-msg">{verdict_msg}</p>'
-        f'<div class="df-score-big">{pct:.1f}<span class="df-score-pct">%</span></div>'
-        f'<div class="df-score-sub">probabilidad de contenido sintético</div>'
+        f'<div class="df-score-big">{pct}<span class="df-score-pct">%</span></div>'
+        f'<div class="df-score-sub">confianza del análisis</div>'
         f'</div>'
 
         f'<div class="df-bar-wrap">'
         + bar_svg +
         f'<div class="df-bar-scale">'
-        f'<span class="df-bar-real">0% — Auténtico</span>'
-        f'<span class="df-bar-mid">50</span>'
-        f'<span class="df-bar-fake">100% — Sintético</span>'
+        f'<span class="df-bar-real">0%</span>'
+        f'<span class="df-bar-mid">Confianza</span>'
+        f'<span class="df-bar-fake">100%</span>'
         f'</div></div>'
 
-        + breakdown +
+        + ev_section +
 
         '<details class="df-details">'
         '<summary>'
-        '<span>Detalles forenses</span>'
+        '<span>Detalles técnicos</span>'
         '<span class="df-details-arrow">▼</span>'
         '</summary>'
         '<div class="df-grid">'
@@ -588,13 +528,11 @@ def _format_result(result: DetectionResult, file_name: str) -> str:
 
         '<div class="df-notice">'
         + _ICON_ALERT +
-        '<span>La detección es probabilística, no definitiva. El resultado es una señal de referencia — '
-        'revisa los detalles forenses y el contexto antes de sacar conclusiones.</span>'
+        '<span>La detección es probabilística, no definitiva. Usa este resultado como señal de referencia.</span>'
         '</div>'
 
         '</div>'
     )
-
 
 # ---------------------------------------------------------------------------
 # Renderizador de historial de chat
@@ -639,7 +577,7 @@ def analyse_file(file_obj, history: list):
     file_name = Path(file_path).name
 
     try:
-        result: DetectionResult = _orchestrator.analyse(file_path)
+        result = _analyzer.analyze(file_path)
         bot_html = _format_result(result, file_name)
     except Exception as exc:  # noqa: BLE001
         logger.exception("Error inesperado al analizar %s", file_path)
@@ -662,7 +600,7 @@ HEADER_HTML = (
     f'<img src="{_ROBOT_SRC}" class="page-hdr-avatar" alt="Bot avatar"/>'
     '<div class="page-hdr-text">'
     '<div class="page-hdr-title">Detector de <span class="page-hdr-grad">Deepfakes</span></div>'
-    '<div class="page-hdr-sub">Imagen ViT · Audio Wav2Vec2 · Inferencia 100% local</div>'
+    '<div class="page-hdr-sub">Powered by Gemini 2.5 Flash · Análisis multimodal</div>'
     '</div>'
     '</div>'
 )
