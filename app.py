@@ -25,7 +25,9 @@ def _patched_schema_to_py(schema, defs=None):
 _gc_utils._json_schema_to_python_type = _patched_schema_to_py
 
 # Detectar si corremos en Hugging Face Spaces
-_IS_SPACES = os.environ.get("SPACE_ID") is not None
+_IS_SPACES  = os.environ.get("SPACE_ID") is not None
+_IS_RAILWAY = os.environ.get("RAILWAY_ENVIRONMENT") is not None
+_IS_CLOUD   = _IS_SPACES or _IS_RAILWAY
 
 from deepfake_analyzer import DeepfakeAnalyzer
 
@@ -712,8 +714,8 @@ with gr.Blocks(
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     demo.launch(
-        server_name="0.0.0.0" if _IS_SPACES else "127.0.0.1",
-        server_port=7860,
+        server_name="0.0.0.0" if _IS_CLOUD else "127.0.0.1",
+        server_port=int(os.environ.get("PORT", 7860)),
         share=False,
         show_error=True,
     )
